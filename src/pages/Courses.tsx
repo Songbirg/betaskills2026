@@ -15,6 +15,28 @@ import { COURSE_CATEGORIES } from '@/types/unifiedCourse';
 
 import { CheckCircle, Clock } from 'lucide-react';
 
+const PINNED_COURSE_TITLES = [
+  'Entrepreneurship',
+  'Roofing',
+  'Plumbing',
+  'Tiling 101',
+  'Hair Dressing',
+  'Nail Technician',
+  'Petrol Motor Mechanic',
+  'Diesel Motor Mechanic',
+  'Landscaping',
+  'Social Media Marketing 101',
+  'Master Electrician Online',
+  'Solar Energy Systems: Installation & Maintenance',
+  'Mastering Podcast Management',
+  'AI Assisted Cartoon Movie Making',
+  'Online Trading - Financial Markets',
+  'Selling Online',
+  'Cybersecurity',
+  'Master Chef',
+  'Smart Home Automation',
+].map(t => t.trim().toLowerCase());
+
 const Courses = () => {
   const { courses, loading } = useCoursesContext();
   const { user } = useAuth();
@@ -84,7 +106,32 @@ const Courses = () => {
       !sortedCourseIds.includes(course.id)
     );
     
-    return [...sortedCourses, ...remainingCourses];
+    const baseSorted = [...sortedCourses, ...remainingCourses];
+
+    // Force all courses to show as available and avoid being filtered out
+    const normalized = baseSorted.map((course) => ({
+      ...(course as any),
+      isComingSoon: false,
+      available: true,
+    }));
+
+    // Pin selected courses to the top (in the user-specified order)
+    const pinnedIndexById = new Map<string, number>();
+    for (const course of normalized) {
+      const idx = PINNED_COURSE_TITLES.indexOf(String(course.title || '').trim().toLowerCase());
+      if (idx !== -1) {
+        pinnedIndexById.set(course.id, idx);
+      }
+    }
+
+    return normalized
+      .slice()
+      .sort((a, b) => {
+        const ai = pinnedIndexById.has(a.id) ? (pinnedIndexById.get(a.id) as number) : Number.POSITIVE_INFINITY;
+        const bi = pinnedIndexById.has(b.id) ? (pinnedIndexById.get(b.id) as number) : Number.POSITIVE_INFINITY;
+        if (ai !== bi) return ai - bi;
+        return 0;
+      });
   }, [courses, sortedCourseIds]);
 
   // Get unique categories from courses and combine with predefined categories

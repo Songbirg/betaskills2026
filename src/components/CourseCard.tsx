@@ -22,7 +22,7 @@ const courseImages: Record<string, string> = {
   'motor-mechanic-diesel': '/placeholder.svg',
 };
 
-const courseAvailability: Record<string, 'Available' | 'Coming Soon'> = {
+const courseAvailability: Record<string, 'Available'> = {
   'entrepreneurship-final': 'Available',
   'ai-human-relations': 'Available',
   'roofing101': 'Available',
@@ -33,10 +33,10 @@ const courseAvailability: Record<string, 'Available' | 'Coming Soon'> = {
   'podcast-management-101': 'Available',
   'emotional-intelligence': 'Available',
   'prophet': 'Available',
-  'f9e8d7c6-b5a4-9382-c1d0-e9f8a7b6c5d5': 'Coming Soon', // Sound Engineering
-  'computer-repairs': 'Coming Soon',
-  'cellphone-repairs': 'Coming Soon',
-  'motor-mechanic-petrol': 'Coming Soon',
+  'f9e8d7c6-b5a4-9382-c1d0-e9f8a7b6c5d5': 'Available',
+  'computer-repairs': 'Available',
+  'cellphone-repairs': 'Available',
+  'motor-mechanic-petrol': 'Available',
   'motor-mechanic-diesel': 'Available',
 };
 
@@ -68,7 +68,7 @@ const CourseCard = ({
   const navigate = useNavigate();
   const { getEnrollment, isEnrolled, hasPendingEnrollment } = useEnrollments();
   const courseImage = courseImages[course.id] || '/placeholder.svg';
-  const availability = courseAvailability[course.id] || 'Available';
+  const availability = 'Available';
   
   // Enhanced state management for enrollment
   const [enrollmentState, setEnrollmentState] = useState<EnrollmentState>({
@@ -506,9 +506,7 @@ const CourseCard = ({
         
         {/* Availability Badge */}
         <div className={`absolute top-1 right-1 sm:top-2 sm:right-2 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-xs font-semibold shadow-lg z-10 ${
-          availability === 'Available' 
-            ? 'bg-green-500 text-white' 
-            : 'bg-yellow-500 text-white'
+          'bg-green-500 text-white'
         }`}>
           {availability}
         </div>

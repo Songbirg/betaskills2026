@@ -548,7 +548,7 @@ const CoursesGrid: React.FC<CoursesGridProps> = ({
                     <span>{formatLessonCount(getLessonCount(course.id))}</span>
                   </div>
                   <div className="px-2 py-1 rounded-full text-xs font-semibold shadow-lg bg-green-500 text-white">
-                    {(course as any).available !== false ? 'Available' : 'Coming Soon'}
+                    Available
                   </div>
                   
                   {/* Real-time enrollment status badge */}
