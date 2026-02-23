@@ -28,9 +28,27 @@ const LessonContent = ({ lesson, course, isCompleted, hasAttempted = false, onMa
     console.log('LessonContent changed:', { courseId: course.id, lessonId: lesson.id, lessonType: lesson.type });
   }, [lessonKey]);
 
+  const maybeComponentContent = (lesson as any)?.content;
+  const hasComponentContent =
+    typeof maybeComponentContent === 'function' ||
+    React.isValidElement(maybeComponentContent);
+
   if (markdownContent) {
     console.log('Using markdown content for course:', course.id);
     return <ContentFormatter content={markdownContent} />;
+  }
+
+  if (hasComponentContent) {
+    const Component = maybeComponentContent;
+
+    return (
+      <div className="space-y-6">
+        <LessonHeader lesson={lesson} isCompleted={isCompleted} hasAttempted={hasAttempted} />
+        <div className="prose prose-lg max-w-none">
+          {typeof Component === 'function' ? <Component /> : Component}
+        </div>
+      </div>
+    );
   }
   // Try to interpret video lessons that actually contain quiz HTML (legacy courses like tiling101)
   const maybeRenderEmbeddedQuiz = () => {
