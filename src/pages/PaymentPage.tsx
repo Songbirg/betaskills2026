@@ -72,8 +72,18 @@ const PaymentPage: React.FC = () => {
   const [showProofOfPayment, setShowProofOfPayment] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
 
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'eft' | 'card'>('eft');
+
   const course = courses?.find(c => c.id === courseId);
   const courseImage = course ? (courseImages[course.id] || courseImages[course.title] || '/placeholder.svg') : '/placeholder.svg';
+
+  const payfastReturnUrl = course
+    ? `${window.location.origin}/payment-success?course=${encodeURIComponent(course.id)}&provider=payfast`
+    : `${window.location.origin}/payment-success?provider=payfast`;
+  const payfastCancelUrl = course
+    ? `${window.location.origin}/payment-failed?course=${encodeURIComponent(course.id)}&provider=payfast`
+    : `${window.location.origin}/payment-failed?provider=payfast`;
+  const payfastNotifyUrl = `${window.location.origin}/api/payfast-notify`;
 
   // Enhanced debug logging
   console.log('PaymentPage: courseId:', courseId);
@@ -283,7 +293,7 @@ const PaymentPage: React.FC = () => {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h4 className="font-semibold text-blue-800 mb-2">💳 Payment Information</h4>
                 <p className="text-blue-700 text-sm">
-                  Please note that we are currently accepting EFT payments only. Kindly follow the payment instructions provided and attach your proof of payment. Once received, your access to the course will be activated.
+                  Choose your payment method below. EFT requires admin approval after proof of payment. Card payments grant access immediately after successful payment.
                 </p>
               </div>
 
@@ -312,6 +322,54 @@ const PaymentPage: React.FC = () => {
                   <Building2 className="w-4 h-4 mr-2" />
                   Pay via EFT / Bank Transfer - R290.00
                 </Button>
+
+                <div className="w-full">
+                  <Button
+                    type="button"
+                    onClick={() => setSelectedPaymentMethod('card')}
+                    className="w-full"
+                    size="lg"
+                    variant={selectedPaymentMethod === 'card' ? 'default' : 'outline'}
+                  >
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Pay with Card (PayFast) - R290.00
+                  </Button>
+
+                  {selectedPaymentMethod === 'card' && (
+                    <div className="mt-4 flex justify-center">
+                      <form
+                        name="PayFastPayNowForm"
+                        action="https://payment.payfast.io/eng/process"
+                        method="post"
+                      >
+                        <input type="hidden" name="cmd" value="_paynow" />
+                        <input type="hidden" name="receiver" value="33842633" />
+                        <input type="hidden" name="return_url" value={payfastReturnUrl} />
+                        <input type="hidden" name="cancel_url" value={payfastCancelUrl} />
+                        <input type="hidden" name="notify_url" value={payfastNotifyUrl} />
+                        <input type="hidden" name="amount" value={(course.price || 290).toFixed(2)} />
+                        <input type="hidden" name="item_name" value="Registration Fee" />
+                        <input
+                          type="hidden"
+                          name="item_description"
+                          value="Registration fee allows you to register for one online course and study at your own pace until completion."
+                        />
+                        <input
+                          type="hidden"
+                          name="m_payment_id"
+                          value={`${course.id}::${user?.id || 'anonymous'}::${Date.now()}`}
+                        />
+
+                        <input
+                          type="image"
+                          src="https://my.payfast.io/images/buttons/PayNow/Primary-Large-PayNow.png"
+                          alt="Pay Now"
+                          title="Pay Now with Payfast"
+                        />
+                      </form>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <p className="text-xs text-gray-500 text-center">
