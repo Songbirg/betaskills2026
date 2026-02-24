@@ -6,6 +6,8 @@ const aliasMap: Record<string, string> = {
   'motor-mechanic-petrol-course': 'petrol-mechanic',
   'diesel-mechanic-course': 'diesel-mechanic',
   'motor-mechanic-diesel-course': 'motor-mechanic-diesel',
+  'ai-cartoon-movie-making': 'ai-cartoon-movies',
+  'ai-assisted-cartoon-movie-making': 'ai-cartoon-movies',
 };
 
 export const resolveCourseId = (courseId?: string): string | undefined => {

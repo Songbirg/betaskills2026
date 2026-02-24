@@ -73,7 +73,7 @@ interface CourseCardProps {
 
 const CourseCard = ({ course }: CourseCardProps) => {
   const courseImage = courseImages[course.id] || '/placeholder.svg';
-  const availability = courseAvailability[course.id] || 'Available';
+  const availability = 'Available';
   const instructor = course.instructor || { first_name: 'Unknown', last_name: 'Instructor' };
 
   return (
@@ -132,9 +132,7 @@ const CourseCard = ({ course }: CourseCardProps) => {
           </div>
           {/* Availability Badge */}
           <div className={`px-2 py-1 rounded-full text-xs font-semibold shadow-lg ${
-            availability === 'Available'
-              ? 'bg-green-500 text-white'
-              : 'bg-orange-500 text-white'
+            'bg-green-500 text-white'
           }`}>
             {availability}
           </div>
