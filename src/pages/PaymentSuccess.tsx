@@ -4,32 +4,125 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
 import { verifyPaymentStatus } from '@/services/paymentService';
+import { useAuth } from '@/hooks/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { saveEnrollmentStatus } from '@/utils/enrollmentStatusSaver';
 
 const PaymentSuccess: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [verifying, setVerifying] = useState(true);
   const [paymentVerified, setPaymentVerified] = useState(false);
+  const { user } = useAuth();
   
-  const courseId = searchParams.get('course');
-  const transactionRef = searchParams.get('ref');
+  const courseId = searchParams.get('course') || searchParams.get('course_id');
+  const provider = searchParams.get('provider') || '';
+  const transactionRef =
+    searchParams.get('pf_payment_id') ||
+    searchParams.get('m_payment_id') ||
+    searchParams.get('ref') ||
+    searchParams.get('payment_id') ||
+    '';
+  const payfastPaymentStatus = searchParams.get('payment_status') || searchParams.get('status') || '';
 
   useEffect(() => {
     const verifyPayment = async () => {
-      if (!transactionRef) {
+      if (!transactionRef && provider !== 'payfast') {
         setVerifying(false);
         return;
       }
 
       try {
-        // Wait a bit for webhook to process
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        const result = await verifyPaymentStatus(transactionRef);
-        
-        if (result.status === 'completed') {
-          setPaymentVerified(true);
-      }
+        if (provider === 'payfast') {
+          const isComplete = String(payfastPaymentStatus).toLowerCase() === 'complete' || String(payfastPaymentStatus).toLowerCase() === 'completed' || String(payfastPaymentStatus).toLowerCase() === 'success';
+          setPaymentVerified(isComplete || !payfastPaymentStatus);
+
+          if (isComplete || !payfastPaymentStatus) {
+            if (user?.id && user?.email && courseId) {
+              const { data: existingEnrollment } = await supabase
+                .from('enrollments')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('course_id', courseId)
+                .maybeSingle();
+
+              const courseTitle = existingEnrollment?.course_title || 'Course';
+
+              const payload: any = {
+                user_id: user.id,
+                user_email: user.email,
+                course_id: courseId,
+                course_title: courseTitle,
+                status: 'approved',
+                payment_ref: transactionRef || null,
+                payment_method: 'card',
+                enrolled_at: existingEnrollment?.enrolled_at || new Date().toISOString(),
+                approved_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                progress: existingEnrollment?.progress ?? 0,
+              };
+
+              try {
+                await supabase
+                  .from('enrollments')
+                  .upsert(payload, { onConflict: 'user_id,course_id' });
+              } catch (e) {
+                // Fallback for schemas without a unique constraint backing the upsert
+                await supabase
+                  .from('enrollments')
+                  .update({
+                    status: payload.status,
+                    payment_ref: payload.payment_ref,
+                    payment_method: payload.payment_method,
+                    approved_at: payload.approved_at,
+                    updated_at: payload.updated_at,
+                  })
+                  .eq('user_id', user.id)
+                  .eq('course_id', courseId);
+
+                if (!existingEnrollment) {
+                  await supabase
+                    .from('enrollments')
+                    .insert([payload]);
+                }
+              }
+
+              try {
+                saveEnrollmentStatus({
+                  id: existingEnrollment?.id,
+                  user_id: user.id,
+                  user_email: user.email,
+                  course_id: courseId,
+                  course_title: courseTitle,
+                  status: 'approved',
+                  enrolled_at: payload.enrolled_at,
+                  approved_at: payload.approved_at,
+                  progress: payload.progress,
+                });
+                localStorage.setItem(
+                  `recent-payment-${user.id}-${courseId}`,
+                  JSON.stringify({ timestamp: new Date().toISOString(), paymentReference: transactionRef, provider: 'payfast' })
+                );
+                localStorage.setItem(
+                  `enrollment-success-${user.id}-${courseId}`,
+                  JSON.stringify({ timestamp: new Date().toISOString(), status: 'approved', courseId, provider: 'payfast' })
+                );
+                window.dispatchEvent(new CustomEvent('enrollment-status-refresh', { detail: { courseId, timestamp: new Date().toISOString() } }));
+                window.dispatchEvent(new CustomEvent('force-course-card-refresh', { detail: { timestamp: new Date().toISOString(), source: 'card-payment' } }));
+                window.dispatchEvent(new CustomEvent('enrollment-success', { detail: { courseId, source: 'card-payment' } }));
+              } catch {}
+            }
+          }
+        } else {
+          // Wait a bit for webhook to process
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          const result = await verifyPaymentStatus(transactionRef);
+
+          if (result.status === 'completed') {
+            setPaymentVerified(true);
+          }
+        }
     } catch (error) {
         console.error('Payment verification error:', error);
       } finally {
@@ -38,11 +131,11 @@ const PaymentSuccess: React.FC = () => {
     };
 
     verifyPayment();
-  }, [transactionRef]);
+  }, [transactionRef, provider, payfastPaymentStatus, user?.id, user?.email, courseId]);
 
   const handleContinue = () => {
     if (courseId) {
-      navigate(`/courses/${courseId}`);
+      navigate(`/course/${courseId}`);
     } else {
       navigate('/courses');
     }
