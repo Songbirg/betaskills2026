@@ -68,9 +68,30 @@ export const CoursesProvider = ({ children }: { children: ReactNode }) => {
           price: c.price || 290,
         })) as Course[];
 
-        setCourses(allCourses);
+        const normalizeTitle = (t: unknown) => String(t || '').trim().toLowerCase();
+        const titlesToDedupe = new Set([
+          'forex trading',
+          'cell phone repairs',
+          'electrician',
+          'solar energy - installations and repairs',
+          'landscaping',
+          'beauty therapy essentials',
+          'dog grooming and training',
+          'social media marketing',
+        ]);
+
+        const seenDedupeTitles = new Set<string>();
+        const dedupedCourses = allCourses.filter((course) => {
+          const normalizedTitle = normalizeTitle((course as any).title);
+          if (!titlesToDedupe.has(normalizedTitle)) return true;
+          if (seenDedupeTitles.has(normalizedTitle)) return false;
+          seenDedupeTitles.add(normalizedTitle);
+          return true;
+        });
+
+        setCourses(dedupedCourses);
         setLoading(false);
-        console.log('CoursesProvider loaded courses:', allCourses);
+        console.log('CoursesProvider loaded courses:', dedupedCourses);
       } catch (err) {
         setError('Failed to load courses');
         setLoading(false);

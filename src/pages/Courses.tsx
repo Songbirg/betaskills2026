@@ -127,6 +127,10 @@ const Courses = () => {
     return normalized
       .slice()
       .sort((a, b) => {
+        const aIsForcedLast = a.id === 'ai-human-relations';
+        const bIsForcedLast = b.id === 'ai-human-relations';
+        if (aIsForcedLast !== bIsForcedLast) return aIsForcedLast ? 1 : -1;
+
         const ai = pinnedIndexById.has(a.id) ? (pinnedIndexById.get(a.id) as number) : Number.POSITIVE_INFINITY;
         const bi = pinnedIndexById.has(b.id) ? (pinnedIndexById.get(b.id) as number) : Number.POSITIVE_INFINITY;
         if (ai !== bi) return ai - bi;
