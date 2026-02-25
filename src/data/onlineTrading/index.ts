@@ -50,3 +50,5 @@ export const onlineTradingCourse: Course = {
     email: 'trading@betaskills.com'
   }
 };
+
+export default onlineTradingCourse;

@@ -1,6 +1,6 @@
 import type { Course } from '@/types/course';
 import { module1 } from './module1';
-import { module2 } from './module2';
+import module2 from './module2';
 import { module3 } from './module3';
 import { module4 } from './module4';
 import { module5 } from './module5';
@@ -54,3 +54,5 @@ export const sellingOnlineCourse: Course = {
     email: 'business@betaskills.com'
   }
 };
+
+export default sellingOnlineCourse;

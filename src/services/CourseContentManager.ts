@@ -580,12 +580,21 @@ class CourseContentManager {
       'ai-and-human-relations': () => import('@/data/aiHumanRelations/index'),
       'roofing101': () => import('@/data/roofingCourse'),
       'plumbing101': () => import('@/data/plumbing101'),
+      'solar101': () => import('@/data/solar101'),
       'tiling-101': () => import('@/data/tiling101'),
       'hair-dressing': () => import('@/data/hairDressing'),
       'nail-technician': () => import('@/data/nailTechnician'),
       'podcast-management-101': () => import('@/data/podcastManagement101Course'),
       'f9e8d7c6-b5a4-9382-c1d0-e9f8a7b6c5d5': () => import('@/data/soundEngineeringCourse'),
       'motor-mechanic-diesel': () => import('@/data/dieselMechanicCourse'),
+      'selling-online': () => import('@/data/sellingOnline'),
+      'online-trading': () => import('@/data/onlineTrading'),
+      'emotional-intelligence': () => import('@/data/emotionalIntelligence'),
+      'prophet': () => import('@/data/prophet'),
+      'smart-home-automation': () => import('@/data/smartHomeAutomation'),
+      'carpentry101': () => import('@/data/carpentry101'),
+      'ai-assisted-programming': () => import('@/data/aiAssistedProgrammingCourse'),
+      'ai-assisted-web-development': () => import('@/data/aiAssistedWebDevelopmentCourse'),
     };
 
     const loader = courseModuleMap[courseId];
