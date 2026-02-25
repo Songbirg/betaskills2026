@@ -31,6 +31,14 @@ import motorMechanicDieselCourse from '@/data/motorMechanicDiesel/index';
 import { aiCartoonMoviesCourse } from '@/data/aiCartoonMovies/index';
 import { soundEngineeringCourse } from '@/data/soundEngineering/index';
 
+import sellingOnlineCourse from '@/data/sellingOnline';
+import onlineTradingCourse from '@/data/onlineTrading';
+import emotionalIntelligenceCourse from '@/data/emotionalIntelligence';
+import smartHomeAutomationCourse from '@/data/smartHomeAutomation';
+import carpentry101Course from '@/data/carpentry101';
+import aiAssistedProgrammingCourse from '@/data/aiAssistedProgrammingCourse';
+import aiAssistedWebDevelopmentCourse from '@/data/aiAssistedWebDevelopmentCourse';
+
 interface CourseLoadResult {
   course: Course | null;
   status: 'success' | 'partial' | 'fallback' | 'failed';
@@ -246,7 +254,15 @@ export const useCourseData = (courseId?: string) => {
         'hair-dressing': hairDressingCourse,
         'nail-technician': nailTechnicianCourse,
         'ai-cartoon-movies': aiCartoonMoviesCourse,
-        'sound-engineering': soundEngineeringCourse
+        'sound-engineering': soundEngineeringCourse,
+
+        'selling-online': sellingOnlineCourse,
+        'online-trading': onlineTradingCourse,
+        'emotional-intelligence': emotionalIntelligenceCourse,
+        'smart-home-automation': smartHomeAutomationCourse,
+        'carpentry101': carpentry101Course,
+        'ai-assisted-programming': aiAssistedProgrammingCourse,
+        'ai-assisted-web-development': aiAssistedWebDevelopmentCourse
       };
       
       console.log('📚 Available courses in map:', Object.keys(courseMap));
@@ -272,6 +288,15 @@ export const useCourseData = (courseId?: string) => {
         if (courseMap[idFromParams]) {
           foundCourse = courseMap[idFromParams];
           console.log("✅ Loaded from static map:", idFromParams);
+          result.status = 'success';
+        } else if (featuredCourseData?.courseId && courseMap[featuredCourseData.courseId]) {
+          // If we navigated via Supabase UUID (or some other ID), recover the canonical courseId slug
+          // and load the full static course definition.
+          foundCourse = courseMap[featuredCourseData.courseId];
+          console.log("✅ Loaded from static map via featuredCourses.courseId:", {
+            requested: idFromParams,
+            canonical: featuredCourseData.courseId
+          });
           result.status = 'success';
         } else {
           // Course not in map - create fallback

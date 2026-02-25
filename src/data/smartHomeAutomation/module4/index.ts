@@ -4,7 +4,6 @@ import { lesson2WiringBasicsForSmartSwitchesAndRelays } from './lesson2-wiring-b
 import { lesson3AppSetup } from './lesson3-app-setup';
 import { lesson4QrCodePairingDeviceNamingAndRoomMapping } from './lesson4-qr-code-pairing-device-naming-and-room-mapping';
 import { lesson5PowerRequirementsAndSafety } from './lesson5-power-requirements-and-safety';
-import { quiz } from './quiz';
 
 export const module4: Module = {
   id: 4,
@@ -15,7 +14,6 @@ export const module4: Module = {
     lesson2WiringBasicsForSmartSwitchesAndRelays,
     lesson3AppSetup,
     lesson4QrCodePairingDeviceNamingAndRoomMapping,
-    lesson5PowerRequirementsAndSafety,
-    quiz
+    lesson5PowerRequirementsAndSafety
   ]
 };
