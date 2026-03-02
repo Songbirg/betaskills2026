@@ -8,7 +8,7 @@ import Lesson6 from './lesson6-avoiding-overtrading';
 import Lesson7 from './lesson7-emotional-discipline';
 import { quiz6 } from './quiz6';
 
-export const module6: Module = {
+const module6: Module = {
   id: 'module6',
   title: 'Risk Management (Core Module)',
   description: 'Protect capital and survive long-term through proper risk-to-reward ratios, position sizing, capital preservation, drawdown management, and mastering trading psychology.',
@@ -80,3 +80,5 @@ export const module6: Module = {
   ],
   quiz: quiz6
 };
+
+export default module6;

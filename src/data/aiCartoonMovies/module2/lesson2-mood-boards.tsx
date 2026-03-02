@@ -2,17 +2,6 @@ export default function Lesson2() {
   return (
     <div className="prose prose-lg max-w-none">
       <h1>AI-Powered Mood Boards for Animation</h1>
-      
-      <div className="video-container my-8">
-        <iframe
-          width="100%"
-          height="500"
-          src="https://www.youtube.com/embed/V_NTqKZm7lc"
-          title="AI-Powered Mood Boards for Animation"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
 
       <p>
         Mood boards are essential tools in animation, helping creators visualize the aesthetic, tone, and style of a project during the pre-production phase. AI-powered tools like MidJourney, DALL·E, and others have transformed mood board creation by generating high-quality visuals, color palettes, and design concepts from text prompts. These tools streamline the process, inspire creativity, and enable rapid exploration of artistic directions.

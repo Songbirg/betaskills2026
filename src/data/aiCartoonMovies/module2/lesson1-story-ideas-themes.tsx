@@ -2,17 +2,6 @@ export default function Lesson1() {
   return (
     <div className="prose prose-lg max-w-none">
       <h1>Generating Story Ideas and Themes with AI</h1>
-      
-      <div className="video-container my-8">
-        <iframe
-          width="100%"
-          height="500"
-          src="https://www.youtube.com/embed/aiplWtjWiHc"
-          title="Generating Story Ideas and Themes with AI"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
 
       <p>
         Generating story ideas and themes is a foundational step in animation, setting the narrative direction and emotional tone for a project. Artificial intelligence (AI) tools like ChatGPT, Jasper, Sudowrite, Plotagon, and Storyboarder have transformed this process by offering rapid ideation, thematic exploration, and creative inspiration. These tools analyze vast datasets of stories, genres, and audience preferences to suggest unique concepts, helping creators overcome creative blocks and explore diverse narratives.

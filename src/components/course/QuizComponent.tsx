@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,6 @@ import {
   HelpCircle,
   ChevronRight,
   RotateCcw,
-  Award,
   Trophy,
   AlertTriangle,
   Download
@@ -19,8 +18,7 @@ import {
 import type { QuizLesson } from '@/types/course';
 import { useModuleScores } from '@/hooks/useModuleScores';
 import { useUserProgress } from '@/hooks/useUserProgress';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Progress } from '@/components/ui/progress';
+import { useParams } from 'react-router-dom';
 import { useCourseCompletion } from '@/hooks/useCourseCompletion';
 import { useCourseData } from '@/hooks/useCourseData';
 import { useAuth } from '@/hooks/AuthContext';
@@ -35,21 +33,20 @@ interface QuizComponentProps {
 }
 
 const QuizComponent = ({ lesson, onComplete, onNext, moduleId, lessonId, courseId: propCourseId }: QuizComponentProps) => {
-  const navigate = useNavigate();
   const { courseId: paramCourseId } = useParams<{ courseId: string }>();
   // Use prop courseId first, then param, for maximum reliability
   const courseId = propCourseId || paramCourseId;
   const { user, profile } = useAuth(); // Get current user and profile for admin bypass
-  const { submitScore, scores, getGradeColor, fetchScores, fetchCourseSummary, testScoringSystem } = useModuleScores(courseId);
-  const { saveQuizScore, markLessonCompleted, updateCurrentPosition } = useUserProgress(courseId);
+  const { submitScore, scores, getGradeColor, fetchScores, fetchCourseSummary } = useModuleScores(courseId);
+  const { saveQuizScore, markLessonCompleted } = useUserProgress(courseId);
   const { course } = useCourseData(courseId || '');
-  const { isCompleted, forceMarkAsCompleted } = useCourseCompletion(course);
+  useCourseCompletion(course);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>(
     new Array(lesson.content.questions.length).fill(null)
   );
   const [showResults, setShowResults] = useState(false);
-  const [quizCompleted, setQuizCompleted] = useState(false);
+  const [, setQuizCompleted] = useState(false);
   const [score, setScore] = useState(0);
 
   // Quiz state management
@@ -67,6 +64,30 @@ const QuizComponent = ({ lesson, onComplete, onNext, moduleId, lessonId, courseI
   
   // FORCE ADMIN BYPASS FOR admin users - PERMANENT FIX
   const forceAdminBypass = userEmail === 'john.doe@gmail.com' || userEmail === 'maxmon@gmail.com';
+
+  const canProceed = score >= PASS_MARK || isAdminUser || forceAdminBypass;
+
+  const moduleIndex = course?.modules?.findIndex((m) => m.id === moduleId) ?? -1;
+  const lessonIndexInModule =
+    moduleIndex >= 0
+      ? (course?.modules?.[moduleIndex]?.lessons?.findIndex((l) => l.id === lessonId) ?? -1)
+      : -1;
+  const isModuleQuiz = lesson?.type === 'quiz';
+  const isLastLessonInModule =
+    moduleIndex >= 0 &&
+    lessonIndexInModule >= 0 &&
+    lessonIndexInModule === (course?.modules?.[moduleIndex]?.lessons?.length ?? 0) - 1;
+  const hasNextModule = moduleIndex >= 0 && moduleIndex < (course?.modules?.length ?? 0) - 1;
+  const canGoToNextModule =
+    isModuleQuiz &&
+    canProceed &&
+    isLastLessonInModule &&
+    hasNextModule;
+
+  const handleGoToNextModule = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    onComplete();
+  };
   
   console.log('🔍 Admin bypass debug:', {
     userEmail,
@@ -78,7 +99,7 @@ const QuizComponent = ({ lesson, onComplete, onNext, moduleId, lessonId, courseI
   });
 
   const questions = randomizedQuestions;
-  const currentQ = questions[currentQuestion];
+  const currentQ = questions[currentQuestion] || questions[0];
   const isLastQuestion = currentQuestion === questions.length - 1;
   const isFirstQuestion = currentQuestion === 0;
 
@@ -538,17 +559,17 @@ const QuizComponent = ({ lesson, onComplete, onNext, moduleId, lessonId, courseI
                   <h3 className="text-2xl font-bold">🎉 Final Quiz Complete!</h3>
                 </div>
                 <p className="text-lg mb-2">
-                  {passedQuiz || isAdminUser
+                  {canProceed
                     ? `Congratulations! You've successfully completed ${course.title}`
                     : `You've completed the final quiz for ${course.title}`}
                 </p>
                 <p className="text-sm opacity-90">
-                  {passedQuiz || isAdminUser
+                  {canProceed
                     ? 'Your certificate is ready. Use the button below to download it.'
                     : 'Pass this quiz with 70%+ to unlock your certificate download.'}
                 </p>
                 <div className="mt-4">
-                  {(passedQuiz || isAdminUser) ? (
+                  {canProceed ? (
                     <Button
                       onClick={handleDownloadCertificate}
                       className="bg-white text-blue-700 hover:bg-white/90 px-6 py-3 rounded-lg inline-flex items-center gap-2 text-base font-bold"
@@ -587,7 +608,7 @@ const QuizComponent = ({ lesson, onComplete, onNext, moduleId, lessonId, courseI
           </Button>
           
           {/* Mark as Complete Button - show based on pass/fail status or admin bypass */}
-          {(passedQuiz || isAdminUser) ? (
+          {canProceed ? (
             <Button
               onClick={onComplete}
               className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-2 rounded-full text-white font-bold shadow-lg transition-all duration-200 focus:outline-none text-sm sm:text-base ${
@@ -611,12 +632,22 @@ const QuizComponent = ({ lesson, onComplete, onNext, moduleId, lessonId, courseI
               ❌ Must Score 70%+ to Continue
             </Button>
           )}
+
+          {canGoToNextModule && (
+            <Button
+              onClick={handleGoToNextModule}
+              className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-2 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-bold shadow-lg hover:from-indigo-700 hover:to-blue-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm sm:text-base"
+            >
+              <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+              Go to Next Module
+            </Button>
+          )}
         </div>
         {/* Answer Review */}
         <Card className="animate-fade-in transition-all duration-200 hover:shadow-xl hover:scale-[1.015]" style={{ animationDelay: '0.3s' }}>
           <CardHeader>
             <CardTitle>
-              {!passedQuiz ? 'Quiz Results' : 'Answer Review'}
+              {!canProceed ? 'Quiz Results' : 'Answer Review'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -635,7 +666,7 @@ const QuizComponent = ({ lesson, onComplete, onNext, moduleId, lessonId, courseI
                     const isWrong = isSelected && !isCorrect;
                     
                     // For failed quizzes, only show wrong answers to help learning
-                    if (!passedQuiz && isCorrect && !isSelected) {
+                    if (!canProceed && isCorrect && !isSelected) {
                       return null;
                     }
                     
@@ -643,7 +674,7 @@ const QuizComponent = ({ lesson, onComplete, onNext, moduleId, lessonId, courseI
                       <div
                         key={oIndex}
                         className={`p-2 rounded border transition-all duration-200 hover:shadow-sm hover:scale-[1.01] ${
-                          !passedQuiz
+                          !canProceed
                             ? isWrong
                               ? 'bg-red-100 border-red-300'
                               : 'bg-gray-50'
@@ -655,7 +686,7 @@ const QuizComponent = ({ lesson, onComplete, onNext, moduleId, lessonId, courseI
                         }`}
                       >
                         <div className="flex items-center gap-2">
-                          {passedQuiz && isCorrect && <CheckCircle className="h-4 w-4 text-green-600" />}
+                          {canProceed && isCorrect && <CheckCircle className="h-4 w-4 text-green-600" />}
                           {isWrong && <XCircle className="h-4 w-4 text-red-600" />}
                           <span>{option}</span>
                         </div>
@@ -664,7 +695,7 @@ const QuizComponent = ({ lesson, onComplete, onNext, moduleId, lessonId, courseI
                   })}
                 </div>
                 {/* Show explanation for failed quizzes or when user got it wrong */}
-                {(!passedQuiz || answers[qIndex] !== question.correct) && (
+                {(!canProceed || answers[qIndex] !== question.correct) && (
                   <div className="bg-blue-50 p-3 rounded-lg">
                     <p className="text-sm text-blue-800">
                       <strong>Explanation:</strong> {question.explanation}
@@ -740,14 +771,14 @@ const QuizComponent = ({ lesson, onComplete, onNext, moduleId, lessonId, courseI
         </CardHeader>
         <CardContent className="p-6">
           <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-4 animate-fade-in" style={{ animationDelay: '0.4s' }}>{currentQ.question}</h3>
+            <h3 className="text-lg font-semibold mb-4 animate-fade-in" style={{ animationDelay: '0.4s' }}>{currentQ?.question || ''}</h3>
             
             <RadioGroup 
               value={answers[currentQuestion]?.toString() || ''} 
               onValueChange={(value) => handleAnswerSelect(parseInt(value))}
               className="space-y-3"
             >
-              {currentQ.options.map((option, index) => (
+              {(currentQ?.options || []).map((option, index) => (
                 <div 
                   key={index} 
                   className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-slate-50 hover-scale transition-all duration-200 animate-fade-in" 

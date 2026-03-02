@@ -40,4 +40,3 @@ export const quiz8: Quiz = {
     }
   ]
 };
-

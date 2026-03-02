@@ -2,17 +2,6 @@ export default function Lesson2() {
   return (
     <div className="prose prose-lg max-w-none">
       <h1>Blending AI with Human Touch-Up (Photoshop/Illustrator)</h1>
-      
-      <div className="video-container my-8">
-        <iframe
-          width="100%"
-          height="500"
-          src="https://www.youtube.com/embed/n-oa73pAIXs"
-          title="Blending AI with Human Touch-Up"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
 
       <p>
         Blending artificial intelligence (AI) with human touch-up in tools like Adobe Photoshop and Illustrator creates a powerful hybrid workflow for animation, combining AI's speed and versatility with the precision and artistry of human editing. This approach enhances character designs, environments, and storyboards by leveraging AI-generated visuals as a foundation, refined through manual adjustments to achieve a polished, unique aesthetic.

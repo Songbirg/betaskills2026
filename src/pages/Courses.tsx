@@ -92,21 +92,25 @@ const Courses = () => {
 
   // Sort courses based on priority calculation
   const prioritySortedCourses = useMemo(() => {
-    if (!sortedCourseIds.length) return courses;
-    
-    // Create a map for quick course lookup
-    const courseMap = new Map(courses.map(course => [course.id, course]));
-    
-    // Return courses in priority order, followed by any remaining courses
-    const sortedCourses = sortedCourseIds
-      .map(id => courseMap.get(id))
-      .filter((course): course is NonNullable<typeof course> => Boolean(course));
-    
-    const remainingCourses = courses.filter(course => 
-      !sortedCourseIds.includes(course.id)
-    );
-    
-    const baseSorted = [...sortedCourses, ...remainingCourses];
+    // If priorities haven't loaded yet (or user isn't enrolled in anything),
+    // still apply the pinned order + forced-last rules.
+    let baseSorted = courses;
+
+    if (sortedCourseIds.length) {
+      // Create a map for quick course lookup
+      const courseMap = new Map(courses.map(course => [course.id, course]));
+      
+      // Return courses in priority order, followed by any remaining courses
+      const sortedCourses = sortedCourseIds
+        .map(id => courseMap.get(id))
+        .filter((course): course is NonNullable<typeof course> => Boolean(course));
+      
+      const remainingCourses = courses.filter(course => 
+        !sortedCourseIds.includes(course.id)
+      );
+
+      baseSorted = [...sortedCourses, ...remainingCourses];
+    }
 
     // Force all courses to show as available and avoid being filtered out
     const normalized = baseSorted.map((course) => ({

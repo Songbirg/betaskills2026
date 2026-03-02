@@ -2,18 +2,6 @@ export default function Lesson1() {
   return (
     <div className="prose max-w-none">
       <h1>Creating AI-Generated Trailers and Teasers</h1>
-      
-      <div className="video-container my-8">
-        <iframe
-          width="100%"
-          height="500"
-          src="https://www.youtube.com/embed/r4TLoVXnkI4"
-          title="Creating AI-Generated Trailers and Teasers"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
 
       <h2>Understanding AI-Generated Trailers and Teasers</h2>
       <p>

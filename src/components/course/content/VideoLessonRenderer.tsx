@@ -21,6 +21,15 @@ interface VideoLessonRendererProps {
 const VideoLessonRenderer = ({ lesson, isCompleted, onMarkComplete, onNext }: VideoLessonRendererProps) => {
   const [contentCompleted, setContentCompleted] = useState(false);
 
+  const componentContent = React.useMemo(() => {
+    const contentAny = lesson.content as any;
+
+    if (React.isValidElement(contentAny)) return contentAny;
+    if (typeof contentAny === 'function') return React.createElement(contentAny);
+
+    return null;
+  }, [lesson.content]);
+
   // Helper function to extract video ID from YouTube URL
   const extractVideoId = (url: string): string => {
     if (url.includes('youtube.com/watch?v=')) {
@@ -53,17 +62,21 @@ const VideoLessonRenderer = ({ lesson, isCompleted, onMarkComplete, onNext }: Vi
   const useAnimatedContent = !isModule1Lesson1 && !isSoundEngineeringLegacyLesson;
 
   // Check if content contains HTML (applies to any course with HTML content)
-  const hasHtmlContent = lesson.content?.textContent && (
-    lesson.content.textContent.includes('<div') ||
-    lesson.content.textContent.includes('<h2>') ||
-    lesson.content.textContent.includes('<ul>') ||
-    lesson.content.textContent.includes('<li>') ||
-    lesson.content.textContent.includes('<p>') ||
-    lesson.content.textContent.includes('class=')
+  const textContent = typeof lesson.content === 'string'
+    ? lesson.content
+    : (lesson.content as any)?.textContent;
+
+  const hasHtmlContent = !!textContent && (
+    textContent.includes('<div') ||
+    textContent.includes('<h2>') ||
+    textContent.includes('<ul>') ||
+    textContent.includes('<li>') ||
+    textContent.includes('<p>') ||
+    textContent.includes('class=')
   );
 
   // Always preserve original content - DO NOT generate fallback for existing content
-  const lessonContent = lesson.content?.textContent || generateFallbackContent(lesson);
+  const lessonContent = textContent || generateFallbackContent(lesson);
   
   // Use original content without adding YouTube text - videos will be handled by the renderer
   const enhancedContent = lessonContent;
@@ -112,7 +125,16 @@ const VideoLessonRenderer = ({ lesson, isCompleted, onMarkComplete, onNext }: Vi
       )}
 
       {/* Content */}
-      {useAnimatedContent ? (
+      {componentContent ? (
+        <div className="animate-fade-in">
+          {componentContent}
+          <div className="mt-6 text-center">
+            <Button onClick={handleContentComplete} className="bg-blue-600 hover:bg-blue-700">
+              I've Read This Content
+            </Button>
+          </div>
+        </div>
+      ) : useAnimatedContent ? (
         <AnimatedLessonContent
           content={enhancedContent}
           lessonTitle={lesson.title}

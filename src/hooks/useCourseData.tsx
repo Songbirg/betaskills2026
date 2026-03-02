@@ -28,7 +28,7 @@ import { computerLaptopRepairsCourse } from '@/data/computerLaptopRepairs/index'
 import { hairDressingCourse } from '@/data/hairDressing/index';
 import { nailTechnicianCourse } from '@/data/nailTechnician/index';
 import motorMechanicDieselCourse from '@/data/motorMechanicDiesel/index';
-import { aiCartoonMoviesCourse } from '@/data/aiCartoonMovies/index';
+import aiCartoonMoviesCourse from '@/data/aiCartoonMovies/index';
 import { soundEngineeringCourse } from '@/data/soundEngineering/index';
 
 import sellingOnlineCourse from '@/data/sellingOnline';

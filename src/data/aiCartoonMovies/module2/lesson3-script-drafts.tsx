@@ -2,17 +2,6 @@ export default function Lesson3() {
   return (
     <div className="prose prose-lg max-w-none">
       <h1>Using AI for Script Drafts and Dialogue Generation</h1>
-      
-      <div className="video-container my-8">
-        <iframe
-          width="100%"
-          height="500"
-          src="https://www.youtube.com/embed/R5pB2DXLlmc"
-          title="Using AI for Script Drafts and Dialogue Generation"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
 
       <p>
         Artificial intelligence (AI) has become a powerful tool for generating script drafts and dialogue in animation, streamlining the writing process and sparking creative ideas. AI tools can produce initial drafts, refine dialogue, and tailor content to specific audiences or genres, making them invaluable for animators, writers, and directors.

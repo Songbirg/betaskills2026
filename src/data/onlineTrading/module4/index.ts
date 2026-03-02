@@ -6,7 +6,7 @@ import Lesson4 from './lesson4-geopolitical-risk';
 import Lesson5 from './lesson5-reading-economic-calendar';
 import { quiz4 } from './quiz4';
 
-export const module4: Module = {
+const module4: Module = {
   id: 'module4',
   title: 'Fundamental Analysis',
   description: 'Understand how news and economics move markets through economic indicators, central bank policies, earnings reports, geopolitical events, and economic calendars.',
@@ -60,3 +60,5 @@ export const module4: Module = {
   ],
   quiz: quiz4
 };
+
+export default module4;

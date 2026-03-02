@@ -6,7 +6,7 @@ import Lesson4 from './lesson4-chart-patterns';
 import Lesson5 from './lesson5-indicators';
 import { quiz5 } from './quiz5';
 
-export const module5: Module = {
+const module5: Module = {
   id: 'module5',
   title: 'Technical Analysis',
   description: 'Use charts to analyse price movement through candlestick patterns, trend identification, support and resistance levels, chart patterns, and technical indicators.',
@@ -60,3 +60,5 @@ export const module5: Module = {
   ],
   quiz: quiz5
 };
+
+export default module5;

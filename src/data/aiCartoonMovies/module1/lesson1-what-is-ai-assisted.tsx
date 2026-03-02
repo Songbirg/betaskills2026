@@ -2,17 +2,6 @@ export default function Lesson1() {
   return (
     <div className="prose prose-lg max-w-none">
       <h1>What Is AI-Assisted Cartoon Movie Making?</h1>
-      
-      <div className="video-container my-8">
-        <iframe
-          width="100%"
-          height="500"
-          src="https://www.youtube.com/embed/1gy2qFLsinY"
-          title="What Is AI-Assisted Cartoon Movie Making?"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
 
       <p>
         AI-assisted cartoon movie making refers to the use of artificial intelligence technologies to streamline, enhance, or automate various aspects of creating animated films or cartoons. By leveraging AI tools, creators can improve efficiency, reduce production costs, and explore new creative possibilities in storytelling, animation, and post-production. Below is an overview of how AI is transforming cartoon movie making:

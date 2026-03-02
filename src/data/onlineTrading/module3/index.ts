@@ -7,7 +7,7 @@ import Lesson5 from './lesson5-liquidity';
 import Lesson6 from './lesson6-pips-lots-spreads';
 import { quiz3 } from './quiz3';
 
-export const module3: Module = {
+const module3: Module = {
   id: 'module3',
   title: 'Market Mechanics & Order Types',
   description: 'Learn how trades are executed, including different order types, risk management tools, execution concepts, and fundamental trading measurements.',
@@ -65,3 +65,5 @@ export const module3: Module = {
   ],
   quiz: quiz3
 };
+
+export default module3;

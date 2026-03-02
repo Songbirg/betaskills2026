@@ -2,18 +2,6 @@ export default function Lesson3() {
   return (
     <div className="prose max-w-none">
       <h1>Motion & Animation with AI</h1>
-      
-      <div className="video-container my-8">
-        <iframe
-          width="100%"
-          height="500"
-          src="https://www.youtube.com/embed/RWaWoQWI4ks"
-          title="Frame Interpolation with AI"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
 
       <h2>Frame Interpolation with EbSynth and DeepMotion</h2>
       <p>
@@ -57,21 +45,9 @@ export default function Lesson3() {
       </ul>
 
       <h3>AI-Assisted 2D/3D Rigging</h3>
-      
-      <div className="video-container my-8">
-        <iframe
-          width="100%"
-          height="500"
-          src="https://www.youtube.com/embed/pdEOGt_i4ck"
-          title="AI-Assisted Rigging"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
 
       <p>
-        AI-assisted rigging revolutionizes how characters and objects are animated by automating the creation of digital skeletons that control movement. This technology makes rigging faster, more accessible, and more precise.
+        AI-assisted rigging uses machine learning to automate the process of creating skeletons and control systems for 2D and 3D characters. Traditionally, rigging requires technical expertise and significant time to set up joints, weights, and controllers. AI tools streamline this by analyzing character models and generating rigs automatically.
       </p>
 
       <h4>2D Rigging Techniques</h4>

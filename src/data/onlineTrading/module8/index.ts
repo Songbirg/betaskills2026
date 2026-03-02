@@ -7,7 +7,7 @@ import Lesson5 from './lesson5-building-routines';
 import Lesson6 from './lesson6-journaling-trades';
 import { quiz8 } from './quiz8';
 
-export const module8: Module = {
+const module8: Module = {
   id: 'module8',
   title: 'Trading Psychology',
   description: 'Master the mental side of trading through understanding fear vs greed, discipline & patience, loss acceptance, avoiding revenge trading, building routines, and journaling trades.',
@@ -70,3 +70,5 @@ export const module8: Module = {
   ],
   quiz: quiz8
 };
+
+export default module8;

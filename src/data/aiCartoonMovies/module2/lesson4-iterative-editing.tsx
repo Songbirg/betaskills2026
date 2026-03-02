@@ -4,17 +4,6 @@ export default function Lesson4() {
     <div className="prose prose-lg max-w-none">
       <h1>Iterative Editing and Refinement with AI Feedback</h1>
 
-      <div className="video-container my-8">
-        <iframe
-          width="100%"
-          height="500"
-          src="https://www.youtube.com/embed/R5pB2DXLlmc"
-          title="Iterative Editing and Refinement with AI Feedback"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
-
       <p>
         Iteration is where good ideas become great. In AI-assisted pre-production, you can use AI feedback and
         rapid draft generation to refine story beats, dialogue, pacing, and character consistency faster.

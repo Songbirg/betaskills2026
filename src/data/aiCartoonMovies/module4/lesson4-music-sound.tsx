@@ -2,18 +2,6 @@ export default function Lesson4() {
   return (
     <div className="prose max-w-none">
       <h1>Music & Sound Effects with AI</h1>
-      
-      <div className="video-container my-8">
-        <iframe
-          width="100%"
-          height="500"
-          src="https://www.youtube.com/embed/TUPmS-_kBt4"
-          title="AI Music Composition"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
 
       <h2>AI Music Composition with Aiva, Soundraw, and Amper</h2>
       <p>
@@ -61,18 +49,6 @@ export default function Lesson4() {
       </ul>
 
       <h3>Automatic Foley and Sound Design</h3>
-      
-      <div className="video-container my-8">
-        <iframe
-          width="100%"
-          height="500"
-          src="https://www.youtube.com/embed/o8uhRTuqvvY"
-          title="Automatic Foley and Sound Design"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
 
       <p>
         Automatic Foley and sound design leverage AI to generate sound effects that synchronize with visuals, automating the traditionally labor-intensive process of Foley artistry.

@@ -2,18 +2,6 @@ export default function Lesson1() {
   return (
     <div className="prose max-w-none">
       <h1>AI-Powered Editing Software: Runway and Pika Labs</h1>
-      
-      <div className="video-container my-8">
-        <iframe
-          width="100%"
-          height="500"
-          src="https://www.youtube.com/embed/c38vtLw1nSk"
-          title="AI-Powered Editing Software"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
 
       <h2>Understanding AI-Powered Editing Software</h2>
       <p>

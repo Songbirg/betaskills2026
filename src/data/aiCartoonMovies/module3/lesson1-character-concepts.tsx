@@ -3,17 +3,6 @@ export default function Lesson1() {
     <div className="prose prose-lg max-w-none">
       <h1>AI-Generated Character Concepts for Animation</h1>
       
-      <div className="video-container my-8">
-        <iframe
-          width="100%"
-          height="500"
-          src="https://www.youtube.com/embed/8N_kiJMP4Z8"
-          title="AI-Generated Character Concepts"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
-
       <p>
         Creating compelling character concepts is a cornerstone of animation, defining the visual and emotional identity of a story's protagonists, antagonists, and supporting cast. Artificial intelligence (AI) tools like MidJourney and Leonardo AI have revolutionized character concept generation by producing detailed, customizable designs from text prompts or reference images.
       </p>

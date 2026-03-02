@@ -7,7 +7,7 @@ import Lesson5 from './lesson5-brokers-and-platforms';
 import Lesson6 from './lesson6-market-hours-global-sessions';
 import { quiz1 } from './quiz1';
 
-export const module1: Module = {
+const module1: Module = {
   id: 'module1',
   title: 'Introduction to Financial Markets',
   description: 'Understand how global financial markets operate, including market types, participants, online trading mechanisms, brokers, and global trading sessions.',
@@ -70,3 +70,5 @@ export const module1: Module = {
   ],
   quiz: quiz1
 };
+
+export default module1;

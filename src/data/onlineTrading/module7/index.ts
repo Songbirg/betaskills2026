@@ -8,7 +8,7 @@ import Lesson6 from './lesson6-breakout-strategy';
 import Lesson7 from './lesson7-reversal-strategy';
 import { quiz7 } from './quiz7';
 
-export const module7: Module = {
+const module7: Module = {
   id: 'module7',
   title: 'Trading Strategies',
   description: 'Develop structured trading systems through scalping, day trading, swing trading, position trading, trend-following, breakout, and reversal strategies.',
@@ -80,3 +80,5 @@ export const module7: Module = {
   ],
   quiz: quiz7
 };
+
+export default module7;

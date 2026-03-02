@@ -2,18 +2,6 @@ export default function Lesson3() {
   return (
     <div className="prose max-w-none">
       <h1>Analytics-Driven Marketing Strategies</h1>
-      
-      <div className="video-container my-8">
-        <iframe
-          width="100%"
-          height="500"
-          src="https://www.youtube.com/embed/3z30ooy8AMA"
-          title="Analytics-Driven Marketing Strategies"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
 
       <h2>Understanding Analytics-Driven Marketing</h2>
       <p>

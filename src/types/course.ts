@@ -1,3 +1,4 @@
+import type { ComponentType, ReactElement } from 'react';
 
 export interface BaseLesson {
   id: number;
@@ -45,7 +46,7 @@ export interface CertificateContent {
 export interface VideoLesson extends BaseLesson {
   type: 'video';
   videoUrl?: string;
-  content: string | VideoContent;
+  content: string | VideoContent | ComponentType<any> | ReactElement;
 }
 
 export interface ReadingLesson extends BaseLesson {

@@ -13,9 +13,9 @@ const module7: Module = {
     lesson1,
     lesson2,
     lesson3,
-    lesson4,
-    quiz
-  ]
+    lesson4
+  ],
+  quiz
 };
 
 export default module7;

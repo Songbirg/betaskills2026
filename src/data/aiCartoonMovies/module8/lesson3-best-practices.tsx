@@ -4,18 +4,6 @@ const Lesson3 = () => {
   return (
     <div className="lesson-content max-w-4xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Lessons Learned and Best Practices</h1>
-      
-      <div className="video-container mb-8">
-        <iframe
-          width="100%"
-          height="500"
-          src="https://www.youtube.com/embed/WXuK6gekU1Y"
-          title="Lessons Learned and Best Practices"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
 
       <section className="mb-8">
         <h2 className="text-2xl font-semibold mb-4">Understanding Lessons Learned and Best Practices</h2>

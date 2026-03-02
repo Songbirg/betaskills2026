@@ -7,7 +7,7 @@ import Lesson5 from './lesson5-cryptocurrency-basics';
 import Lesson6 from './lesson6-leverage-and-margin';
 import { quiz2 } from './quiz2';
 
-export const module2: Module = {
+const module2: Module = {
   id: 'module2',
   title: 'Trading Instruments Explained',
   description: 'Understand what you are actually trading, including stocks, CFDs, forex pairs, commodities, indices, cryptocurrencies, and the concepts of leverage and margin.',
@@ -69,3 +69,5 @@ export const module2: Module = {
   ],
   quiz: quiz2
 };
+
+export default module2;

@@ -41,11 +41,56 @@ const LessonContent = ({ lesson, course, isCompleted, hasAttempted = false, onMa
   if (hasComponentContent) {
     const Component = maybeComponentContent;
 
+    const extractVideoId = (url: string): string => {
+      if (url.includes('youtube.com/watch?v=')) {
+        return url.split('v=')[1].split('&')[0];
+      } else if (url.includes('youtu.be/')) {
+        return url.split('youtu.be/')[1].split('?')[0];
+      } else if (url.includes('youtube.com/embed/')) {
+        return url.split('embed/')[1].split('?')[0];
+      } else if (url.includes('www.youtube.com/watch?')) {
+        return url.split('v=')[1].split('&')[0];
+      }
+      return url;
+    };
+
+    const maybeVideoUrl =
+      lesson.type === 'video'
+        ? ((lesson as any)?.videoUrl || (lesson as any)?.content?.videoUrl || '')
+        : '';
+
     return (
-      <div className="space-y-6">
+      <div
+        className={`space-y-6 max-w-4xl mx-auto ${
+          course.id === 'online-trading' ? 'online-trading-lesson' : ''
+        }`}
+      >
         <LessonHeader lesson={lesson} isCompleted={isCompleted} hasAttempted={hasAttempted} />
-        <div className="prose prose-lg max-w-none">
-          {typeof Component === 'function' ? <Component /> : Component}
+        {maybeVideoUrl ? (
+          <div className="mb-6">
+            <div className="youtube-container">
+              <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                <iframe
+                  className="absolute top-0 left-0 w-full h-full rounded-lg"
+                  src={`https://www.youtube.com/embed/${extractVideoId(maybeVideoUrl)}`}
+                  title={lesson.title}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        <div
+          className={`course-lesson-card relative overflow-hidden rounded-3xl bg-white dark:bg-gray-900 shadow-xl border border-gray-200/50 dark:border-gray-800 ${
+            course.id === 'online-trading' ? 'hide-embedded-iframes' : ''
+          }`}
+        >
+          <div className="p-6 md:p-10">
+            {typeof Component === 'function' ? <Component /> : Component}
+          </div>
         </div>
       </div>
     );
