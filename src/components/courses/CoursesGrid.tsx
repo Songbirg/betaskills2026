@@ -10,12 +10,10 @@ import { safeGetEnrollmentStatus } from '@/utils/enrollmentErrorFix';
 // import CourseCard from '@/components/courses/CourseCard'; // Not used in this component
 // import { Skeleton } from '@/components/ui/skeleton'; // Not used in this component
 import {
-  BookOpen,
   Clock,
   CheckCircle,
   AlertCircle,
 } from 'lucide-react';
-import { getLessonCount, formatLessonCount } from '@/utils/courseUtils';
 import CourseProgressBar from './CourseProgressBar';
 import CourseGridEnrollmentButton from './CourseGridEnrollmentButton';
 import aiHumanNew from '../../../images/generation-7f218044-3139-41b5-8dc7-afedae829ae7.png';
@@ -543,10 +541,6 @@ const CoursesGrid: React.FC<CoursesGridProps> = ({
 
                 {/* Course Stats Badges */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs">
-                    <BookOpen className="w-3 h-3" />
-                    <span>{formatLessonCount(getLessonCount(course.id))}</span>
-                  </div>
                   <div className="px-2 py-1 rounded-full text-xs font-semibold shadow-lg bg-green-500 text-white">
                     Available
                   </div>

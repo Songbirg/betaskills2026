@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Users, BookOpen, RefreshCw, CalendarIcon, X } from 'lucide-react';
+import { BookOpen, CalendarIcon, RefreshCw, Search, Users, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { ProgressDisplay } from '@/components/admin/ProgressDisplay';
@@ -31,6 +30,7 @@ const SimpleAdminDashboard: React.FC = () => {
   
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
+  const [enrollmentSearchQuery, setEnrollmentSearchQuery] = useState('');
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
@@ -528,176 +528,293 @@ const SimpleAdminDashboard: React.FC = () => {
     return Math.max(0, Math.min(100, Math.round(n)));
   };
 
+  const normalizeEnrollmentStatus = (raw: any): 'pending' | 'approved' | 'rejected' | 'other' => {
+    const s = String(raw || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[_-]+/g, ' ');
+    if (!s) return 'pending';
+    if (s === 'approved' || /\bapproved\b/.test(s) || /\bactive\b/.test(s)) return 'approved';
+    if (s === 'rejected' || /\brejected\b/.test(s) || /\bdeclined\b/.test(s)) return 'rejected';
+    if (s === 'pending' || /\bpending\b/.test(s) || /\breview\b/.test(s) || /\bawaiting\b/.test(s)) return 'pending';
+    return 'other';
+  };
+
+  const pendingCount = enrollments.filter((e) => normalizeEnrollmentStatus(e?.status) === 'pending').length;
+  const approvedCount = enrollments.filter((e) => normalizeEnrollmentStatus(e?.status) === 'approved').length;
+  const rejectedCount = enrollments.filter((e) => normalizeEnrollmentStatus(e?.status) === 'rejected').length;
+
+  const filteredEnrollments = React.useMemo(() => {
+    const q = enrollmentSearchQuery.trim().toLowerCase();
+    if (!q) return enrollments;
+    return (enrollments || []).filter((e) => {
+      const email = String(e?.user_email || '').toLowerCase();
+      const course = String(e?.course_title || e?.course_id || '').toLowerCase();
+      const status = String(e?.status || '').toLowerCase();
+      return email.includes(q) || course.includes(q) || status.includes(q);
+    });
+  }, [enrollmentSearchQuery, enrollments]);
+
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-            <p className="text-gray-600">Manage enrollments and users</p>
-          </div>
-          <Button onClick={fetchData} disabled={loading} className="flex items-center gap-2">
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            {loading ? 'Loading...' : 'Refresh'}
-          </Button>
-        </div>
-
-        {error && enrollments.length === 0 && users.length === 0 && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-            {error}
-          </div>
-        )}
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Enrollments</p>
-                  <p className="text-3xl font-bold text-gray-900">{enrollments.length}</p>
-                </div>
-                <BookOpen className="h-8 w-8 text-blue-500" />
+    <div className="min-h-screen bg-slate-100">
+      <div className="flex min-h-screen">
+        <aside className="hidden lg:flex w-72 flex-col bg-slate-900 text-white">
+          <div className="px-6 py-6">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-2xl bg-white/10 flex items-center justify-center">
+                <BookOpen className="h-5 w-5" />
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Users</p>
-                  <p className="text-3xl font-bold text-gray-900">{users.length}</p>
-                </div>
-                <Users className="h-8 w-8 text-green-500" />
+              <div>
+                <div className="text-base font-semibold">Beta Skills</div>
+                <div className="text-xs text-white/60">Admin</div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </div>
 
-        {/* Tabs */}
-        <div className="mb-6 border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
+          <div className="px-4">
             <button
+              type="button"
               onClick={() => setActiveTab('enrollments')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'enrollments'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500'
+              className={`w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-colors ${
+                activeTab === 'enrollments' ? 'bg-white/10' : 'hover:bg-white/5'
               }`}
             >
-              Enrollments ({enrollments.length})
+              <BookOpen className="h-5 w-5" />
+              Enrollments
+              <span className="ml-auto rounded-full bg-white/10 px-2 py-0.5 text-xs font-bold">{enrollments.length}</span>
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab('users')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'users'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500'
+              className={`mt-2 w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-colors ${
+                activeTab === 'users' ? 'bg-white/10' : 'hover:bg-white/5'
               }`}
             >
-              Users ({users.length})
+              <Users className="h-5 w-5" />
+              Users
+              <span className="ml-auto rounded-full bg-white/10 px-2 py-0.5 text-xs font-bold">{users.length}</span>
             </button>
-          </nav>
-        </div>
+          </div>
 
-        {/* Content */}
-        {activeTab === 'enrollments' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Enrollments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {enrollments.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">
-                  {dataLoaded ? 'No enrollments found' : 'Loading...'}
-                </p>
-              ) : (
+          <div className="mt-auto px-6 py-6 text-xs text-white/50">
+            Version 1.0
+          </div>
+        </aside>
+
+        <main className="flex-1">
+          <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Admin Dashboard</h1>
+                <p className="text-slate-600">Manage enrollments and users</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="relative w-full md:w-[320px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                  <input
+                    className="h-10 w-full rounded-2xl border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-slate-900/20"
+                    placeholder={activeTab === 'enrollments' ? 'Search enrollments...' : 'Search users...'}
+                    value={activeTab === 'enrollments' ? enrollmentSearchQuery : searchQuery}
+                    onChange={(e) => {
+                      if (activeTab === 'enrollments') setEnrollmentSearchQuery(e.target.value);
+                      else setSearchQuery(e.target.value);
+                    }}
+                  />
+                </div>
+                <Button onClick={fetchData} disabled={loading} className="rounded-2xl bg-slate-900 hover:bg-slate-800">
+                  <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  {loading ? 'Loading...' : 'Refresh'}
+                </Button>
+              </div>
+            </div>
+
+            {error && enrollments.length === 0 && users.length === 0 && (
+              <div className="mt-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-2xl">
+                {error}
+              </div>
+            )}
+
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="rounded-3xl bg-gradient-to-r from-sky-500 to-blue-700 text-white p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs text-white/80">Total Enrollments</div>
+                    <div className="mt-1 text-2xl font-bold">{enrollments.length}</div>
+                  </div>
+                  <div className="h-10 w-10 rounded-2xl bg-white/15 flex items-center justify-center">
+                    <BookOpen className="h-5 w-5" />
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-3xl bg-gradient-to-r from-fuchsia-500 to-rose-600 text-white p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs text-white/80">Pending</div>
+                    <div className="mt-1 text-2xl font-bold">{pendingCount}</div>
+                  </div>
+                  <div className="h-10 w-10 rounded-2xl bg-white/15 flex items-center justify-center">
+                    <RefreshCw className="h-5 w-5" />
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-3xl bg-gradient-to-r from-violet-500 to-indigo-700 text-white p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs text-white/80">Approved</div>
+                    <div className="mt-1 text-2xl font-bold">{approvedCount}</div>
+                  </div>
+                  <div className="h-10 w-10 rounded-2xl bg-white/15 flex items-center justify-center">
+                    <BookOpen className="h-5 w-5" />
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-3xl bg-gradient-to-r from-slate-700 to-slate-900 text-white p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs text-white/80">Rejected</div>
+                    <div className="mt-1 text-2xl font-bold">{rejectedCount}</div>
+                  </div>
+                  <div className="h-10 w-10 rounded-2xl bg-white/15 flex items-center justify-center">
+                    <X className="h-5 w-5" />
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-3xl bg-gradient-to-r from-emerald-500 to-green-700 text-white p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs text-white/80">Total Users</div>
+                    <div className="mt-1 text-2xl font-bold">{users.length}</div>
+                  </div>
+                  <div className="h-10 w-10 rounded-2xl bg-white/15 flex items-center justify-center">
+                    <Users className="h-5 w-5" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center gap-2 rounded-3xl bg-white p-2 ring-1 ring-slate-200 w-full max-w-md">
+              <button
+                type="button"
+                onClick={() => setActiveTab('enrollments')}
+                className={`flex-1 rounded-2xl px-4 py-2 text-sm font-semibold transition-colors ${
+                  activeTab === 'enrollments' ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                Enrollments
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('users')}
+                className={`flex-1 rounded-2xl px-4 py-2 text-sm font-semibold transition-colors ${
+                  activeTab === 'users' ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                Users
+              </button>
+            </div>
+
+            {activeTab === 'enrollments' && (
+              <div className="mt-6 rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden">
+                <div className="px-6 py-5 flex items-center justify-between">
+                  <div>
+                    <div className="text-base font-semibold text-slate-900">Enrollments</div>
+                    <div className="text-sm text-slate-500">Approve or reject pending enrollments</div>
+                  </div>
+                  <div className="text-sm text-slate-500">Showing {filteredEnrollments.length}</div>
+                </div>
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                  <table className="min-w-full divide-y divide-slate-200">
+                    <thead className="bg-slate-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Course</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Progress</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Email</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Course</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Date</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Action</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Progress</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {enrollments.map((e) => (
-                        (() => {
-                          const rawStatus = String(e.status || '').toLowerCase();
-                          const isPending = rawStatus === 'pending' || rawStatus.includes('pending');
-                          return (
-                        <tr
-                          key={e.id}
-                          className="cursor-pointer hover:bg-gray-50"
-                          onClick={() => openEnrollmentDetails(e)}
-                        >
-                          <td className="px-4 py-3 text-sm">{e.user_email || 'N/A'}</td>
-                          <td className="px-4 py-3 text-sm">{e.course_title || e.course_id}</td>
-                          <td className="px-4 py-3">
-                            <Badge>{e.status || 'active'}</Badge>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-500">
-                            {e.enrolled_at ? new Date(e.enrolled_at).toLocaleDateString() : 'N/A'}
-                          </td>
-                          <td className="px-4 py-3 text-sm">
-                            {isPending ? (
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  className="bg-green-600 hover:bg-green-700"
-                                  disabled={!!updatingEnrollmentId}
-                                  onClick={(ev) => {
-                                    ev.stopPropagation();
-                                    handleUpdateEnrollment(e.id, 'approved');
-                                  }}
-                                >
-                                  Approve
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  disabled={!!updatingEnrollmentId}
-                                  onClick={(ev) => {
-                                    ev.stopPropagation();
-                                    handleUpdateEnrollment(e.id, 'rejected');
-                                  }}
-                                >
-                                  Reject
-                                </Button>
-                              </div>
-                            ) : (
-                              <span className="text-gray-400">-</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-sm">
-                            {rawStatus === 'approved' || rawStatus.includes('approved') ? (
-                              <div
-                                className="w-[170px]"
-                                onClick={(ev) => {
-                                  ev.stopPropagation();
-                                }}
-                              >
-                                <ProgressDisplay progressPercentage={getEnrollmentProgress(e)} compact />
-                              </div>
-                            ) : (
-                              <span className="text-gray-400">-</span>
-                            )}
+                    <tbody className="bg-white divide-y divide-slate-100">
+                      {filteredEnrollments.length === 0 ? (
+                        <tr>
+                          <td className="px-4 py-10 text-center text-sm text-slate-500" colSpan={6}>
+                            {dataLoaded ? 'No enrollments found' : 'Loading...'}
                           </td>
                         </tr>
-                          );
-                        })()
-                      ))}
+                      ) : (
+                        filteredEnrollments.map((e) => (
+                          (() => {
+                            const rawStatus = String(e.status || '').toLowerCase();
+                            const isPending = rawStatus === 'pending' || rawStatus.includes('pending');
+                            return (
+                          <tr
+                            key={e.id}
+                            className="cursor-pointer hover:bg-slate-50"
+                            onClick={() => openEnrollmentDetails(e)}
+                          >
+                            <td className="px-4 py-3 text-sm text-slate-800">{e.user_email || 'N/A'}</td>
+                            <td className="px-4 py-3 text-sm text-slate-800">{e.course_title || e.course_id}</td>
+                            <td className="px-4 py-3">
+                              <Badge>{e.status || 'active'}</Badge>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-slate-500">
+                              {e.enrolled_at ? new Date(e.enrolled_at).toLocaleDateString() : 'N/A'}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {isPending ? (
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    className="rounded-xl bg-emerald-600 hover:bg-emerald-700"
+                                    disabled={!!updatingEnrollmentId}
+                                    onClick={(ev) => {
+                                      ev.stopPropagation();
+                                      handleUpdateEnrollment(e.id, 'approved');
+                                    }}
+                                  >
+                                    Approve
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="rounded-xl"
+                                    disabled={!!updatingEnrollmentId}
+                                    onClick={(ev) => {
+                                      ev.stopPropagation();
+                                      handleUpdateEnrollment(e.id, 'rejected');
+                                    }}
+                                  >
+                                    Reject
+                                  </Button>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400">-</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {rawStatus === 'approved' || rawStatus.includes('approved') ? (
+                                <div
+                                  className="w-[170px]"
+                                  onClick={(ev) => {
+                                    ev.stopPropagation();
+                                  }}
+                                >
+                                  <ProgressDisplay progressPercentage={getEnrollmentProgress(e)} compact />
+                                </div>
+                              ) : (
+                                <span className="text-slate-400">-</span>
+                              )}
+                            </td>
+                          </tr>
+                            );
+                          })()
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+              </div>
+            )}
 
         <Dialog modal={false} open={detailsOpen} onOpenChange={(open) => {
           setDetailsOpen(open);
@@ -823,12 +940,13 @@ const SimpleAdminDashboard: React.FC = () => {
           </DialogContent>
         </Dialog>
 
-        {activeTab === 'users' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Users</CardTitle>
-            </CardHeader>
-            <CardContent>
+            {activeTab === 'users' && (
+              <div className="mt-6 rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden">
+                <div className="px-6 py-5">
+                  <div className="text-base font-semibold text-slate-900">Users</div>
+                  <div className="text-sm text-slate-500">Filter and review registered users</div>
+                </div>
+                <div className="px-6 pb-6">
               {/* Filter Section */}
               <div className="mb-6 space-y-4">
                 <div className="flex flex-col md:flex-row gap-4">
@@ -907,41 +1025,41 @@ const SimpleAdminDashboard: React.FC = () => {
 
               {/* Users Table */}
               {users.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">
+                <p className="text-slate-500 text-center py-8">
                   {dataLoaded ? 'No users found' : 'Loading...'}
                 </p>
               ) : filteredUsers.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">
+                <p className="text-slate-500 text-center py-8">
                   No users match the current filters
                 </p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                  <table className="min-w-full divide-y divide-slate-200">
+                    <thead className="bg-slate-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Registered</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Email</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Name</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Phone</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Role</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Registered</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white divide-y divide-slate-100">
                       {filteredUsers.map((u) => (
                         <tr key={u.id}>
-                          <td className="px-4 py-3 text-sm">{u.email || 'N/A'}</td>
-                          <td className="px-4 py-3 text-sm">
+                          <td className="px-4 py-3 text-sm text-slate-800">{u.email || 'N/A'}</td>
+                          <td className="px-4 py-3 text-sm text-slate-800">
                             {u.first_name || u.last_name 
                               ? `${u.first_name || ''} ${u.last_name || ''}`.trim()
                               : 'N/A'}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
+                          <td className="px-4 py-3 text-sm text-slate-600">
                             {u.contact_number || 'Not provided'}
                           </td>
                           <td className="px-4 py-3">
                             <Badge>{u.role || 'student'}</Badge>
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-500">
+                          <td className="px-4 py-3 text-sm text-slate-500">
                             {u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A'}
                           </td>
                         </tr>
@@ -950,9 +1068,11 @@ const SimpleAdminDashboard: React.FC = () => {
                   </table>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        )}
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
       </div>
     </div>
   );

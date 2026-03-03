@@ -100,52 +100,24 @@ const Auth = () => {
    */
   const handleAuthenticationSuccess = async (authenticatedUser: any, userProfile: any) => {
     try {
-      console.log('🔐 Authentication successful, using enhanced login success handling...');
-      
-      // Use the enhanced handleLoginSuccess method that includes session management
-      const loginResult = await handleLoginSuccess(
+      console.log('🔐 Authentication successful, initializing session and redirecting to courses...');
+
+      // Keep session initialization (prevents auth-related edge cases), but redirect to courses.
+      const sessionInitialized = await initializeSession(
         { id: authenticatedUser.id, email: authenticatedUser.email || '' },
-        userProfile,
-        {
-          replaceHistory: true,
-          preserveQueryParams: false
-        }
+        userProfile
       );
-      
-      if (!loginResult.success) {
-        console.warn('⚠️ Enhanced login success failed, attempting fallback');
-        
-        if (userProfile) {
-          // Fallback to basic routing
-          const routingResult = routeAfterLogin(userProfile, {
-            replaceHistory: true,
-            preserveQueryParams: false
-          });
-          
-          if (!routingResult.success) {
-            console.error('❌ Fallback routing failed, using error recovery');
-            const recoveryResult = handleRoutingError(
-              new Error(routingResult.error || 'All routing attempts failed'),
-              '/dashboard'
-            );
-            
-            if (!recoveryResult.success) {
-              console.error('❌ All recovery attempts failed, using manual navigation');
-              navigate('/dashboard', { replace: true });
-            }
-          }
-        } else {
-          // Handle missing profile case
-          handleRoleDetectionRecovery(authenticatedUser);
-        }
-      } else {
-        console.log('✅ Enhanced login success completed:', loginResult.route);
-        
-        // Set dashboard preference if not already set
-        if (userProfile?.role && !userProfile.dashboard_preference) {
-          await setDashboardPreference(userProfile.role);
-        }
+
+      if (!sessionInitialized) {
+        console.warn('⚠️ Session initialization failed, continuing with navigation to courses');
       }
+
+      // Persist dashboard preference if available (even though we go to courses after auth)
+      if (userProfile?.role && !userProfile.dashboard_preference) {
+        await setDashboardPreference(userProfile.role);
+      }
+
+      navigate('/courses', { replace: true });
     } catch (error) {
       console.error('❌ Error during authentication success handling:', error);
       handleAuthenticationError(error as Error);
