@@ -18,15 +18,15 @@ import { christianTeacherCourse } from './christianTeacherCourse';
 import aiHumanRelationsCourse from './aiHumanRelations';
 import roofingCourse from './roofingCourse';
 import { smartHomeAutomationCourse } from './smartHomeAutomationCourse';
-import { podcastManagement101Course } from './podcastManagement101Course';
+import { podcastManagementCourse } from './podcastManagement';
 import { socialMediaMarketing101Course } from './socialMediaMarketing101Course';
 import { landscaping101Course } from './landscaping101Course';
-
 import masterchef101 from './masterchef101';
 import beautyTherapy101 from './beautyTherapy101';
 import doggrooming101 from './doggrooming101';
 import { cybersecurity101Course } from './cybersecurity101Course';
 import filmProduction101 from './filmProduction101';
+import bookkeepingCourse from './bookkeeping';
 
 // Helper function to convert Course to UnifiedCourse
 const convertCourseToUnified = (course: any): UnifiedCourse => {
@@ -72,14 +72,15 @@ const allCourseData = [
   christianTeacherCourse,
   roofingCourse,
   smartHomeAutomationCourse,
-  podcastManagement101Course,
+  podcastManagementCourse,
   socialMediaMarketing101Course,
   landscaping101Course,
   convertCourseToUnified(masterchef101),
   convertCourseToUnified(beautyTherapy101),
   convertCourseToUnified(doggrooming101),
   cybersecurity101Course,
-  convertCourseToUnified(filmProduction101)
+  convertCourseToUnified(filmProduction101),
+  convertCourseToUnified(bookkeepingCourse)
 ];
 
 // Normalize all courses to UnifiedCourse format

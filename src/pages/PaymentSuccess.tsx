@@ -8,6 +8,18 @@ import { useAuth } from '@/hooks/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { saveEnrollmentStatus } from '@/utils/enrollmentStatusSaver';
 
+const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+  let timeoutId: number | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(`Timeout after ${ms}ms (${label})`)), ms);
+  });
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
+};
+
 const PaymentSuccess: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -27,91 +39,120 @@ const PaymentSuccess: React.FC = () => {
 
   useEffect(() => {
     const verifyPayment = async () => {
+      let forcedStopId: number | undefined;
+      forcedStopId = window.setTimeout(() => {
+        console.warn('Payment verification timed out on the client; stopping spinner to avoid blocking access.');
+        setVerifying(false);
+      }, 8000);
+
       if (!transactionRef && provider !== 'payfast') {
         setVerifying(false);
+        if (forcedStopId) window.clearTimeout(forcedStopId);
         return;
       }
 
       try {
         if (provider === 'payfast') {
           const isComplete = String(payfastPaymentStatus).toLowerCase() === 'complete' || String(payfastPaymentStatus).toLowerCase() === 'completed' || String(payfastPaymentStatus).toLowerCase() === 'success';
-          setPaymentVerified(isComplete || !payfastPaymentStatus);
+          const shouldGrant = isComplete || !payfastPaymentStatus;
+          setPaymentVerified(shouldGrant);
 
-          if (isComplete || !payfastPaymentStatus) {
-            if (user?.id && user?.email && courseId) {
-              const { data: existingEnrollment } = await supabase
-                .from('enrollments')
-                .select('*')
-                .eq('user_id', user.id)
-                .eq('course_id', courseId)
-                .maybeSingle();
+          // IMPORTANT: never block the UI on network/database writes.
+          if (shouldGrant && user?.id && user?.email && courseId) {
+            const now = new Date().toISOString();
 
-              const courseTitle = existingEnrollment?.course_title || 'Course';
-
-              const payload: any = {
+            // 1) Grant access immediately (local persistence + UI refresh events)
+            try {
+              saveEnrollmentStatus({
                 user_id: user.id,
                 user_email: user.email,
                 course_id: courseId,
-                course_title: courseTitle,
+                course_title: 'Course',
                 status: 'approved',
-                payment_ref: transactionRef || null,
-                payment_method: 'card',
-                enrolled_at: existingEnrollment?.enrolled_at || new Date().toISOString(),
-                approved_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                progress: existingEnrollment?.progress ?? 0,
-              };
+                enrolled_at: now,
+                approved_at: now,
+                progress: 0,
+              });
+              localStorage.setItem(
+                `recent-payment-${user.id}-${courseId}`,
+                JSON.stringify({ timestamp: now, paymentReference: transactionRef, provider: 'payfast' })
+              );
+              localStorage.setItem(
+                `enrollment-success-${user.id}-${courseId}`,
+                JSON.stringify({ timestamp: now, status: 'approved', courseId, provider: 'payfast' })
+              );
+              window.dispatchEvent(new CustomEvent('enrollment-status-refresh', { detail: { courseId, timestamp: now } }));
+              window.dispatchEvent(new CustomEvent('force-course-card-refresh', { detail: { timestamp: now, source: 'card-payment' } }));
+              window.dispatchEvent(new CustomEvent('enrollment-success', { detail: { courseId, source: 'card-payment' } }));
+            } catch (e) {
+              console.warn('Local enrollment persistence failed (non-blocking):', e);
+            }
 
+            // 2) Sync to Supabase in the background (idempotent best-effort)
+            (async () => {
               try {
-                await supabase
-                  .from('enrollments')
-                  .upsert(payload, { onConflict: 'user_id,course_id' });
-              } catch (e) {
-                // Fallback for schemas without a unique constraint backing the upsert
-                await supabase
-                  .from('enrollments')
-                  .update({
-                    status: payload.status,
-                    payment_ref: payload.payment_ref,
-                    payment_method: payload.payment_method,
-                    approved_at: payload.approved_at,
-                    updated_at: payload.updated_at,
-                  })
-                  .eq('user_id', user.id)
-                  .eq('course_id', courseId);
-
-                if (!existingEnrollment) {
-                  await supabase
+                const existingRes = await withTimeout(
+                  supabase
                     .from('enrollments')
-                    .insert([payload]);
-                }
-              }
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('course_id', courseId)
+                    .maybeSingle(),
+                  5000,
+                  'fetch existing enrollment'
+                );
+                const existingEnrollment = (existingRes as any)?.data;
+                const courseTitle = existingEnrollment?.course_title || 'Course';
 
-              try {
-                saveEnrollmentStatus({
-                  id: existingEnrollment?.id,
+                const payload: any = {
                   user_id: user.id,
                   user_email: user.email,
                   course_id: courseId,
                   course_title: courseTitle,
                   status: 'approved',
-                  enrolled_at: payload.enrolled_at,
-                  approved_at: payload.approved_at,
-                  progress: payload.progress,
-                });
-                localStorage.setItem(
-                  `recent-payment-${user.id}-${courseId}`,
-                  JSON.stringify({ timestamp: new Date().toISOString(), paymentReference: transactionRef, provider: 'payfast' })
-                );
-                localStorage.setItem(
-                  `enrollment-success-${user.id}-${courseId}`,
-                  JSON.stringify({ timestamp: new Date().toISOString(), status: 'approved', courseId, provider: 'payfast' })
-                );
-                window.dispatchEvent(new CustomEvent('enrollment-status-refresh', { detail: { courseId, timestamp: new Date().toISOString() } }));
-                window.dispatchEvent(new CustomEvent('force-course-card-refresh', { detail: { timestamp: new Date().toISOString(), source: 'card-payment' } }));
-                window.dispatchEvent(new CustomEvent('enrollment-success', { detail: { courseId, source: 'card-payment' } }));
-              } catch {}
-            }
+                  payment_ref: transactionRef || null,
+                  payment_method: 'card',
+                  enrolled_at: existingEnrollment?.enrolled_at || now,
+                  approved_at: now,
+                  updated_at: now,
+                  progress: existingEnrollment?.progress ?? 0,
+                };
+
+                try {
+                  await withTimeout(
+                    supabase.from('enrollments').upsert(payload, { onConflict: 'user_id,course_id' }),
+                    7000,
+                    'upsert enrollment'
+                  );
+                } catch (e) {
+                  await withTimeout(
+                    supabase
+                      .from('enrollments')
+                      .update({
+                        status: payload.status,
+                        payment_ref: payload.payment_ref,
+                        payment_method: payload.payment_method,
+                        approved_at: payload.approved_at,
+                        updated_at: payload.updated_at,
+                      })
+                      .eq('user_id', user.id)
+                      .eq('course_id', courseId),
+                    7000,
+                    'update enrollment'
+                  );
+
+                  if (!existingEnrollment) {
+                    await withTimeout(
+                      supabase.from('enrollments').insert([payload]),
+                      7000,
+                      'insert enrollment'
+                    );
+                  }
+                }
+              } catch (e) {
+                console.warn('Supabase enrollment sync failed (non-blocking):', e);
+              }
+            })();
           }
         } else {
           // Wait a bit for webhook to process

@@ -1,0 +1,11 @@
+node_modules
+.git
+.vscode
+.idea
+.env
+.env.*
+dist
+dist-ssr
+coverage
+**/vite.config.ts.timestamp-*.mjs
+**/*.log
