@@ -14,6 +14,7 @@ interface Props {
   courseTitle?: string;
   courseId?: string;
   userId?: string;
+  isComingSoon?: boolean;
 }
 
 const CourseGridEnrollmentButton: React.FC<Props> = ({ 
@@ -22,7 +23,8 @@ const CourseGridEnrollmentButton: React.FC<Props> = ({
   onContinueClick, 
   courseTitle = 'course',
   courseId,
-  userId
+  userId,
+  isComingSoon = false
 }) => {
   const [isNavigating, setIsNavigating] = useState(false);
   const [navigationError, setNavigationError] = useState<string | null>(null);
@@ -154,6 +156,14 @@ const CourseGridEnrollmentButton: React.FC<Props> = ({
     return (
       <Button disabled className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold text-xs shadow-lg cursor-not-allowed">
         Pending Approval
+      </Button>
+    );
+  }
+
+  if (isComingSoon) {
+    return (
+      <Button disabled className="w-full bg-gray-500 text-white font-bold text-xs shadow-lg cursor-not-allowed opacity-70">
+        Coming Soon
       </Button>
     );
   }

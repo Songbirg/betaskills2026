@@ -24,6 +24,9 @@ const SimpleAdminDashboard: React.FC = () => {
   const { toast } = useToast();
   const [updatingEnrollmentId, setUpdatingEnrollmentId] = useState<string | null>(null);
 
+  const [statsModalOpen, setStatsModalOpen] = useState(false);
+  const [statsModalFilter, setStatsModalFilter] = useState<'enrollments' | 'pending' | 'approved' | 'rejected' | 'users'>('users');
+
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedEnrollment, setSelectedEnrollment] = useState<any | null>(null);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
@@ -544,6 +547,102 @@ const SimpleAdminDashboard: React.FC = () => {
   const approvedCount = enrollments.filter((e) => normalizeEnrollmentStatus(e?.status) === 'approved').length;
   const rejectedCount = enrollments.filter((e) => normalizeEnrollmentStatus(e?.status) === 'rejected').length;
 
+  const getUserLabel = (u: any) => {
+    const first = String(u?.first_name || '').trim();
+    const last = String(u?.last_name || '').trim();
+    const full = `${first} ${last}`.trim();
+    return full || String(u?.email || 'Unknown');
+  };
+
+  const modalTitle = React.useMemo(() => {
+    switch (statsModalFilter) {
+      case 'pending':
+        return 'Pending Users';
+      case 'approved':
+        return 'Approved Users';
+      case 'rejected':
+        return 'Rejected Users';
+      case 'enrollments':
+        return 'Users With Enrollments';
+      case 'users':
+      default:
+        return 'All Users';
+    }
+  }, [statsModalFilter]);
+
+  const modalUsers = React.useMemo(() => {
+    const uById = new Map<string, any>();
+    const uByEmail = new Map<string, any>();
+    for (const u of users || []) {
+      if (u?.id) uById.set(String(u.id), u);
+      if (u?.email) uByEmail.set(String(u.email).toLowerCase(), u);
+    }
+
+    const enrollmentsByUserKey = new Map<string, any[]>();
+    for (const e of enrollments || []) {
+      const userIdKey = e?.user_id ? String(e.user_id) : '';
+      const emailKey = e?.user_email ? String(e.user_email).toLowerCase() : '';
+      const key = userIdKey || emailKey;
+      if (!key) continue;
+      const prev = enrollmentsByUserKey.get(key) || [];
+      prev.push(e);
+      enrollmentsByUserKey.set(key, prev);
+    }
+
+    const matchesFilter = (userKey: string, eList: any[]) => {
+      if (statsModalFilter === 'enrollments') return (eList || []).length > 0;
+      if (statsModalFilter === 'users') return true;
+      const wanted = statsModalFilter;
+      return (eList || []).some((e) => normalizeEnrollmentStatus(e?.status) === wanted);
+    };
+
+    const out: any[] = [];
+
+    if (statsModalFilter === 'users') {
+      for (const u of users || []) {
+        const idKey = u?.id ? String(u.id) : '';
+        const emailKey = u?.email ? String(u.email).toLowerCase() : '';
+        const userKey = String(idKey || emailKey || '');
+        const byId = idKey ? (enrollmentsByUserKey.get(idKey) || []) : [];
+        const byEmail = emailKey ? (enrollmentsByUserKey.get(emailKey) || []) : [];
+        const eList = [...byId, ...byEmail];
+        out.push({
+          user: u,
+          userKey,
+          enrollments: eList,
+        });
+      }
+      return out;
+    }
+
+    for (const [userKey, eList] of enrollmentsByUserKey.entries()) {
+      if (!matchesFilter(userKey, eList)) continue;
+      const first = eList?.[0];
+      const resolvedUser = uById.get(userKey) || (first?.user_email ? uByEmail.get(String(first.user_email).toLowerCase()) : null);
+      const fallbackUser = resolvedUser || {
+        id: first?.user_id || null,
+        email: first?.user_email || 'Unknown',
+        first_name: '',
+        last_name: '',
+        contact_number: null,
+        role: 'student',
+        created_at: first?.enrolled_at || null,
+      };
+      out.push({
+        user: fallbackUser,
+        userKey,
+        enrollments: eList,
+      });
+    }
+
+    return out;
+  }, [users, enrollments, statsModalFilter]);
+
+  const openStatsModal = (filter: 'enrollments' | 'pending' | 'approved' | 'rejected' | 'users') => {
+    setStatsModalFilter(filter);
+    setStatsModalOpen(true);
+  };
+
   const filteredEnrollments = React.useMemo(() => {
     const q = enrollmentSearchQuery.trim().toLowerCase();
     if (!q) return enrollments;
@@ -635,7 +734,11 @@ const SimpleAdminDashboard: React.FC = () => {
             )}
 
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="rounded-3xl bg-gradient-to-r from-sky-500 to-blue-700 text-white p-5 shadow-sm">
+              <button
+                type="button"
+                onClick={() => openStatsModal('enrollments')}
+                className="rounded-3xl bg-gradient-to-r from-sky-500 to-blue-700 text-white p-5 shadow-sm text-left transition-transform hover:scale-[1.01] active:scale-[0.99]"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs text-white/80">Total Enrollments</div>
@@ -645,8 +748,13 @@ const SimpleAdminDashboard: React.FC = () => {
                     <BookOpen className="h-5 w-5" />
                   </div>
                 </div>
-              </div>
-              <div className="rounded-3xl bg-gradient-to-r from-fuchsia-500 to-rose-600 text-white p-5 shadow-sm">
+              </button>
+
+              <button
+                type="button"
+                onClick={() => openStatsModal('pending')}
+                className="rounded-3xl bg-gradient-to-r from-fuchsia-500 to-rose-600 text-white p-5 shadow-sm text-left transition-transform hover:scale-[1.01] active:scale-[0.99]"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs text-white/80">Pending</div>
@@ -656,8 +764,13 @@ const SimpleAdminDashboard: React.FC = () => {
                     <RefreshCw className="h-5 w-5" />
                   </div>
                 </div>
-              </div>
-              <div className="rounded-3xl bg-gradient-to-r from-violet-500 to-indigo-700 text-white p-5 shadow-sm">
+              </button>
+
+              <button
+                type="button"
+                onClick={() => openStatsModal('approved')}
+                className="rounded-3xl bg-gradient-to-r from-violet-500 to-indigo-700 text-white p-5 shadow-sm text-left transition-transform hover:scale-[1.01] active:scale-[0.99]"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs text-white/80">Approved</div>
@@ -667,8 +780,13 @@ const SimpleAdminDashboard: React.FC = () => {
                     <BookOpen className="h-5 w-5" />
                   </div>
                 </div>
-              </div>
-              <div className="rounded-3xl bg-gradient-to-r from-slate-700 to-slate-900 text-white p-5 shadow-sm">
+              </button>
+
+              <button
+                type="button"
+                onClick={() => openStatsModal('rejected')}
+                className="rounded-3xl bg-gradient-to-r from-slate-700 to-slate-900 text-white p-5 shadow-sm text-left transition-transform hover:scale-[1.01] active:scale-[0.99]"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs text-white/80">Rejected</div>
@@ -678,8 +796,13 @@ const SimpleAdminDashboard: React.FC = () => {
                     <X className="h-5 w-5" />
                   </div>
                 </div>
-              </div>
-              <div className="rounded-3xl bg-gradient-to-r from-emerald-500 to-green-700 text-white p-5 shadow-sm">
+              </button>
+
+              <button
+                type="button"
+                onClick={() => openStatsModal('users')}
+                className="rounded-3xl bg-gradient-to-r from-emerald-500 to-green-700 text-white p-5 shadow-sm text-left transition-transform hover:scale-[1.01] active:scale-[0.99]"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs text-white/80">Total Users</div>
@@ -689,8 +812,62 @@ const SimpleAdminDashboard: React.FC = () => {
                     <Users className="h-5 w-5" />
                   </div>
                 </div>
-              </div>
+              </button>
             </div>
+
+            <Dialog open={statsModalOpen} onOpenChange={setStatsModalOpen}>
+              <DialogContent className="max-w-3xl w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto overflow-x-hidden top-[4vh] translate-y-0">
+                <DialogHeader>
+                  <DialogTitle>{modalTitle}</DialogTitle>
+                  <DialogDescription>
+                    Showing {modalUsers.length} user{modalUsers.length === 1 ? '' : 's'}
+                  </DialogDescription>
+                </DialogHeader>
+
+                {modalUsers.length === 0 ? (
+                  <div className="py-10 text-center text-sm text-slate-500">No users found for this filter.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-200">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">User</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Email</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Enrollments</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Pending</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Approved</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Rejected</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-slate-100">
+                        {modalUsers.map(({ user, enrollments: eList }, idx) => {
+                          const pending = (eList || []).filter((e: any) => normalizeEnrollmentStatus(e?.status) === 'pending').length;
+                          const approved = (eList || []).filter((e: any) => normalizeEnrollmentStatus(e?.status) === 'approved').length;
+                          const rejected = (eList || []).filter((e: any) => normalizeEnrollmentStatus(e?.status) === 'rejected').length;
+                          const email = String(user?.email || 'N/A');
+                          return (
+                            <tr key={String(user?.id || email || idx)} className="hover:bg-slate-50">
+                              <td className="px-4 py-3 text-sm text-slate-800 font-medium">{getUserLabel(user)}</td>
+                              <td className="px-4 py-3 text-sm text-slate-700 break-words">{email}</td>
+                              <td className="px-4 py-3 text-sm text-slate-700">{(eList || []).length}</td>
+                              <td className="px-4 py-3 text-sm text-slate-700">{pending}</td>
+                              <td className="px-4 py-3 text-sm text-slate-700">{approved}</td>
+                              <td className="px-4 py-3 text-sm text-slate-700">{rejected}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setStatsModalOpen(false)}>
+                    Close
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             <div className="mt-6 flex items-center gap-2 rounded-3xl bg-white p-2 ring-1 ring-slate-200 w-full max-w-md">
               <button

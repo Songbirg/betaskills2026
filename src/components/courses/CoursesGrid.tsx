@@ -541,8 +541,12 @@ const CoursesGrid: React.FC<CoursesGridProps> = ({
 
                 {/* Course Stats Badges */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <div className="px-2 py-1 rounded-full text-xs font-semibold shadow-lg bg-green-500 text-white">
-                    Available
+                  <div className={`px-2 py-1 rounded-full text-xs font-semibold shadow-lg ${
+                    (course as any)?.isComingSoon
+                      ? 'bg-gray-500 text-white'
+                      : 'bg-green-500 text-white'
+                  }`}>
+                    {(course as any)?.isComingSoon ? 'Coming soon' : 'Available'}
                   </div>
                   
                   {/* Real-time enrollment status badge */}
@@ -606,6 +610,7 @@ const CoursesGrid: React.FC<CoursesGridProps> = ({
                   courseTitle={course.title}
                   courseId={course.id}
                   userId={user?.id || user?.email || ''}
+                  isComingSoon={Boolean((course as any)?.isComingSoon) && status === 'unenrolled'}
                 />
               </div>
             </div>

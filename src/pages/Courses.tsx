@@ -3,11 +3,14 @@ import { useCoursesContext } from '@/hooks/CoursesContext';
 import { useCourseFiltering } from '@/hooks/useCourseFiltering';
 import { useCoursePriorities } from '@/hooks/useCoursePriorities';
 import { useEnrollments } from '@/hooks/EnrollmentContext';
+import { useAuth } from '@/hooks/AuthContext';
 import Footer from '@/components/Footer';
 import CoursesGrid from '@/components/courses/CoursesGrid';
 import EmptyCoursesState from '@/components/courses/EmptyCoursesState';
 import CoursesLoadingState from '@/components/courses/CoursesLoadingState';
 import { Input } from '@/components/ui/input';
+import { getEnrollmentStatus } from '@/utils/enrollmentPersistence';
+import { getCourseProgress } from '@/utils/enrollmentPersistence';
 import { Search, X } from 'lucide-react';
 
 const PINNED_COURSE_TITLES = [
@@ -32,11 +35,49 @@ const PINNED_COURSE_TITLES = [
   'Smart Home Automation',
 ].map(t => t.trim().toLowerCase());
 
+const COMING_SOON_COURSE_TITLES = new Set([
+  'Sound Engineering',
+  'Hosting Management in ICT',
+  'Forex Trading',
+  'AI Assisted Graphic Design',
+  'Electronics, Radio, TV',
+  'Gaming Console Repairs',
+  'Biometric Access Control Installation and Maintenance',
+  'Welding',
+  'Bricklaying',
+  'Plastering',
+  'Painting',
+  'Ceiling Installation',
+  'Glazing',
+  'Door Hanging',
+  'Foundations, Slabs and Screeds',
+  'Tarmac Installation and Repairs',
+  'Professional Massage Therapy',
+  'Fashion Design',
+  'Modelling Master Class',
+  'Professional Sangoma',
+  'Reverend',
+  'Islamic Teacher',
+  'Apostle',
+  'Evangelist - Christian',
+  'Bishop',
+  'Prophetic Ministry',
+  'Motor Bike Mechanic',
+  'Film Production',
+  'Gas Appliances Installation and Repairs',
+  'Refrigeration and Airconditioning',
+  'Professional Personal Advisor',
+  'Self Mastery',
+  'Professional Life Coaching',
+  'Events Management',
+].map(t => t.trim().toLowerCase()));
+
 const Courses = () => {
   const { courses, loading } = useCoursesContext();
+  const { user } = useAuth();
   const { isLoading: enrollmentsLoading } = useEnrollments();
   const [, setRefreshTrigger] = useState(0);
-  const [courseView, setCourseView] = useState<'available' | 'enrolled' | 'pending'>('available');
+  const [courseView, setCourseView] = useState<'all' | 'available' | 'enrolled' | 'pending' | 'completed'>('available');
 
   // Listen for enrollment status changes and refresh the page
   useEffect(() => {
@@ -101,12 +142,17 @@ const Courses = () => {
       baseSorted = [...sortedCourses, ...remainingCourses];
     }
 
-    // Force all courses to show as available and avoid being filtered out
-    const normalized = baseSorted.map((course) => ({
-      ...(course as any),
-      isComingSoon: false,
-      available: true,
-    }));
+    // Normalize courses; mark selected courses as coming soon
+    const normalized = baseSorted.map((course) => {
+      const titleKey = String((course as any)?.title || '').trim().toLowerCase();
+      const isComingSoon = COMING_SOON_COURSE_TITLES.has(titleKey);
+
+      return {
+        ...(course as any),
+        isComingSoon,
+        available: isComingSoon ? false : true,
+      };
+    });
 
     // Pin selected courses to the top (in the user-specified order)
     const pinnedIndexById = new Map<string, number>();
@@ -141,27 +187,115 @@ const Courses = () => {
 
   const { searchFilters, setSearchFilters, filteredCourses, handleClearFilters } = useCourseFiltering(prioritySortedCourses as any);
 
-  const enrolledSet = useMemo(() => new Set(courseGroups?.enrolled?.map((c: any) => c.courseId) || []), [courseGroups]);
-  const pendingSet = useMemo(() => new Set(courseGroups?.pending?.map((c: any) => c.courseId) || []), [courseGroups]);
+  const enrolledSetFromGroups = useMemo(() => new Set(courseGroups?.enrolled?.map((c: any) => c.courseId) || []), [courseGroups]);
+  const pendingSetFromGroups = useMemo(() => new Set(courseGroups?.pending?.map((c: any) => c.courseId) || []), [courseGroups]);
   const availableSet = useMemo(() => new Set(courseGroups?.available?.map((c: any) => c.courseId) || []), [courseGroups]);
 
+  const enrolledSet = useMemo(() => {
+    if (enrolledSetFromGroups.size > 0) return enrolledSetFromGroups;
+
+    const fromPriorities = new Set<string>();
+    for (const p of coursePriorities || []) {
+      if ((p as any)?.enrollmentStatus === 'ENROLLED') fromPriorities.add(String((p as any).courseId));
+    }
+    if (fromPriorities.size > 0) return fromPriorities;
+
+    const userId = user?.id || user?.email;
+    if (!userId) return new Set<string>();
+
+    const fromPersistence = new Set<string>();
+    for (const c of filteredCourses as any[]) {
+      if (!c?.id) continue;
+      try {
+        const s = getEnrollmentStatus(String(c.id), String(userId));
+        if (s === 'enrolled') fromPersistence.add(String(c.id));
+      } catch {
+        // ignore
+      }
+    }
+    return fromPersistence;
+  }, [enrolledSetFromGroups, coursePriorities, user?.id, user?.email, filteredCourses]);
+
+  const pendingSet = useMemo(() => {
+    if (pendingSetFromGroups.size > 0) return pendingSetFromGroups;
+
+    const fromPriorities = new Set<string>();
+    for (const p of coursePriorities || []) {
+      if ((p as any)?.enrollmentStatus === 'PENDING') fromPriorities.add(String((p as any).courseId));
+    }
+    if (fromPriorities.size > 0) return fromPriorities;
+
+    const userId = user?.id || user?.email;
+    if (!userId) return new Set<string>();
+
+    const fromPersistence = new Set<string>();
+    for (const c of filteredCourses as any[]) {
+      if (!c?.id) continue;
+      try {
+        const s = getEnrollmentStatus(String(c.id), String(userId));
+        if (s === 'pending') fromPersistence.add(String(c.id));
+      } catch {
+        // ignore
+      }
+    }
+    return fromPersistence;
+  }, [pendingSetFromGroups, coursePriorities, user?.id, user?.email, filteredCourses]);
+
+  const availableCoursesList = useMemo(() => {
+    const nonComingSoon = (filteredCourses as any[]).filter((c: any) => !(c as any)?.isComingSoon);
+    if (availableSet.size === 0) return nonComingSoon;
+    return nonComingSoon.filter((c: any) => availableSet.has(c.id));
+  }, [filteredCourses, availableSet]);
+
+  const enrolledCoursesList = useMemo(() => {
+    return filteredCourses.filter((c: any) => enrolledSet.has(c.id));
+  }, [filteredCourses, enrolledSet]);
+
+  const pendingCoursesList = useMemo(() => {
+    return filteredCourses.filter((c: any) => pendingSet.has(c.id));
+  }, [filteredCourses, pendingSet]);
+
+  const completedCoursesList = useMemo(() => {
+    const userId = user?.id || user?.email;
+    if (!userId) return [] as any[];
+
+    return filteredCourses.filter((c: any) => {
+      if (!c?.id) return false;
+      if (!enrolledSet.has(c.id)) return false;
+      try {
+        const progress = getCourseProgress(String(c.id), String(userId));
+        return Number(progress) >= 100;
+      } catch {
+        return false;
+      }
+    });
+  }, [filteredCourses, enrolledSet, user?.id, user?.email]);
+
   const viewFilteredCourses = useMemo(() => {
+    if (courseView === 'all') return filteredCourses;
+    if (courseView === 'completed') return completedCoursesList;
     const ids =
       courseView === 'enrolled'
         ? enrolledSet
         : courseView === 'pending'
           ? pendingSet
           : availableSet;
-    if (courseView === 'available' && ids.size === 0) return filteredCourses;
+    if (courseView === 'available') {
+      const nonComingSoon = (filteredCourses as any[]).filter((c: any) => !(c as any)?.isComingSoon);
+      if (ids.size === 0) return nonComingSoon;
+      return nonComingSoon.filter((c: any) => ids.has(c.id));
+    }
     return filteredCourses.filter((c: any) => ids.has(c.id));
-  }, [filteredCourses, courseView, enrolledSet, pendingSet, availableSet]);
+  }, [filteredCourses, courseView, enrolledSet, pendingSet, availableSet, completedCoursesList]);
 
   const viewCounts = useMemo(() => {
-    const available = courseGroups?.totalAvailable ?? (availableSet.size || filteredCourses.length);
-    const enrolled = courseGroups?.totalEnrolled ?? enrolledSet.size;
-    const pending = courseGroups?.totalPending ?? pendingSet.size;
-    return { available, enrolled, pending };
-  }, [courseGroups, availableSet, enrolledSet, pendingSet, filteredCourses.length]);
+    const all = filteredCourses.length;
+    const available = availableCoursesList.length;
+    const enrolled = enrolledCoursesList.length;
+    const pending = pendingCoursesList.length;
+    const completed = completedCoursesList.length;
+    return { all, available, enrolled, pending, completed };
+  }, [filteredCourses.length, availableCoursesList.length, enrolledCoursesList.length, pendingCoursesList.length, completedCoursesList.length]);
 
   // Wait for both courses and enrollments to load
   if ((loading || prioritiesLoading || enrollmentsLoading) && courses.length === 0) {
@@ -181,6 +315,26 @@ const Courses = () => {
           <div className="mb-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCourseView('all')}
+                  className={`group relative overflow-hidden inline-flex items-center gap-3 rounded-full px-5 py-2 text-sm font-semibold transition-all duration-300 shadow-sm ring-1 ${
+                    courseView === 'all'
+                      ? 'bg-gradient-to-r from-slate-700 via-gray-700 to-zinc-700 text-white ring-black/10 shadow-md'
+                      : 'bg-white text-gray-800 ring-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 transition-all ${
+                    courseView === 'all'
+                      ? 'bg-white/15 ring-white/20'
+                      : 'bg-gray-100 ring-gray-200 group-hover:bg-gray-200'
+                  }`}
+                  >
+                    <span className={`${courseView === 'all' ? 'text-white' : 'text-gray-700'}`}>📋</span>
+                  </span>
+                  <span>All Courses</span>
+                  <span className={`ml-1 rounded-full px-2 py-0.5 text-xs font-bold ${courseView === 'all' ? 'bg-white/15 text-white' : 'bg-gray-100 text-gray-700'}`}>{viewCounts.all}</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setCourseView('available')}
@@ -240,6 +394,27 @@ const Courses = () => {
                   </span>
                   <span>Pending Approval</span>
                   <span className={`ml-1 rounded-full px-2 py-0.5 text-xs font-bold ${courseView === 'pending' ? 'bg-white/15 text-white' : 'bg-gray-100 text-gray-700'}`}>{viewCounts.pending}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCourseView('completed')}
+                  className={`group relative overflow-hidden inline-flex items-center gap-3 rounded-full px-5 py-2 text-sm font-semibold transition-all duration-300 shadow-sm ring-1 ${
+                    courseView === 'completed'
+                      ? 'bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 text-white ring-black/10 shadow-md'
+                      : 'bg-white text-gray-800 ring-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full ring-1 transition-all ${
+                    courseView === 'completed'
+                      ? 'bg-white/15 ring-white/20'
+                      : 'bg-emerald-50 ring-emerald-100 group-hover:bg-emerald-100'
+                  }`}
+                  >
+                    <span className={`${courseView === 'completed' ? 'text-white' : 'text-emerald-700'}`}>✅</span>
+                  </span>
+                  <span>Completed Courses</span>
+                  <span className={`ml-1 rounded-full px-2 py-0.5 text-xs font-bold ${courseView === 'completed' ? 'bg-white/15 text-white' : 'bg-gray-100 text-gray-700'}`}>{viewCounts.completed}</span>
                 </button>
               </div>
 

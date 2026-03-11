@@ -102,28 +102,41 @@ const Index = () => {
       {/* Stats Section */}
       <section className="bg-white py-16">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div>
-              <div className="text-4xl font-bold text-red-600 mb-2">60+</div>
-              <div className="text-lg text-gray-600">Professional Courses</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-6 shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-4xl font-black tracking-tight text-gray-900">
+                <span className="bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">60+</span>
+              </div>
+              <div className="mt-2 text-sm font-medium text-gray-600">Professional Courses</div>
+              <div className="mt-4 h-1.5 w-16 rounded-full bg-gradient-to-r from-red-600 to-rose-600" />
             </div>
-            <div>
-              <div className="text-4xl font-bold text-red-600 mb-2">1000+</div>
-              <div className="text-lg text-gray-600">Students Enrolled</div>
+            <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-6 shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-4xl font-black tracking-tight text-gray-900">
+                <span className="bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">1000+</span>
+              </div>
+              <div className="mt-2 text-sm font-medium text-gray-600">Students Enrolled</div>
+              <div className="mt-4 h-1.5 w-16 rounded-full bg-gradient-to-r from-red-600 to-rose-600" />
             </div>
-            <div>
-              <div className="text-4xl font-bold text-red-600 mb-2">100%</div>
-              <div className="text-lg text-gray-600">Free Training</div>
+            <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-6 shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-4xl font-black tracking-tight text-gray-900">
+                <span className="bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">100%</span>
+              </div>
+              <div className="mt-2 text-sm font-medium text-gray-600">Free Training</div>
+              <div className="mt-4 h-1.5 w-16 rounded-full bg-gradient-to-r from-red-600 to-rose-600" />
             </div>
           </div>
         </div>
       </section>
 
       {/* Featured Courses Section */}
-      <section className="bg-gray-50 py-16">
-        <div className="container mx-auto px-4 sm:px-6">
+      <section className="relative bg-gray-50 py-16 overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-red-500/10 blur-3xl" />
+          <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-purple-500/10 blur-3xl" />
+        </div>
+        <div className="container mx-auto px-4 sm:px-6 relative">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4 tracking-tight">
               Featured Courses
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -131,16 +144,24 @@ const Index = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Course Cards */}
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+            <div className="group rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+              <div className="h-1.5 w-full bg-gradient-to-r from-red-600 via-rose-600 to-pink-600" />
               <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Entrepreneurship</h3>
-                <p className="text-gray-600 mb-4">Learn to create and manage your own business</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-2xl font-bold text-red-600">R290</span>
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="text-lg font-bold text-gray-900">Entrepreneurship</h3>
+                  <span className="inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 ring-1 ring-red-100">
+                    Business
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-gray-600">Learn to create and manage your own business</p>
+                <div className="mt-5 flex items-center justify-between">
+                  <span className="inline-flex items-center rounded-full bg-gray-900 px-3 py-1 text-sm font-bold text-white">
+                    R290
+                  </span>
                   <Link to="/courses">
-                    <Button className="bg-red-600 hover:bg-red-700 text-white">
+                    <Button className="rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white shadow-md">
                       Learn More
                     </Button>
                   </Link>
@@ -148,14 +169,22 @@ const Index = () => {
               </div>
             </div>
             
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+            <div className="group rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+              <div className="h-1.5 w-full bg-gradient-to-r from-red-600 via-rose-600 to-pink-600" />
               <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Plumbing</h3>
-                <p className="text-gray-600 mb-4">Master plumbing fundamentals and techniques</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-2xl font-bold text-red-600">R290</span>
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="text-lg font-bold text-gray-900">Plumbing</h3>
+                  <span className="inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 ring-1 ring-red-100">
+                    Construction
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-gray-600">Master plumbing fundamentals and techniques</p>
+                <div className="mt-5 flex items-center justify-between">
+                  <span className="inline-flex items-center rounded-full bg-gray-900 px-3 py-1 text-sm font-bold text-white">
+                    R290
+                  </span>
                   <Link to="/courses">
-                    <Button className="bg-red-600 hover:bg-red-700 text-white">
+                    <Button className="rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white shadow-md">
                       Learn More
                     </Button>
                   </Link>
@@ -163,14 +192,22 @@ const Index = () => {
               </div>
             </div>
             
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+            <div className="group rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+              <div className="h-1.5 w-full bg-gradient-to-r from-red-600 via-rose-600 to-pink-600" />
               <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Hair Dressing</h3>
-                <p className="text-gray-600 mb-4">Professional hair styling and salon management</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-2xl font-bold text-red-600">R290</span>
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="text-lg font-bold text-gray-900">Hair Dressing</h3>
+                  <span className="inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 ring-1 ring-red-100">
+                    Beauty
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-gray-600">Professional hair styling and salon management</p>
+                <div className="mt-5 flex items-center justify-between">
+                  <span className="inline-flex items-center rounded-full bg-gray-900 px-3 py-1 text-sm font-bold text-white">
+                    R290
+                  </span>
                   <Link to="/courses">
-                    <Button className="bg-red-600 hover:bg-red-700 text-white">
+                    <Button className="rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white shadow-md">
                       Learn More
                     </Button>
                   </Link>
@@ -178,14 +215,22 @@ const Index = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+            <div className="group rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+              <div className="h-1.5 w-full bg-gradient-to-r from-red-600 via-rose-600 to-pink-600" />
               <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">AI and Human Relations</h3>
-                <p className="text-gray-600 mb-4">Explore AI, ethics, communication, and workplace applications</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-2xl font-bold text-red-600">R290</span>
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="text-lg font-bold text-gray-900">AI and Human Relations</h3>
+                  <span className="inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 ring-1 ring-red-100">
+                    ICT
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-gray-600">Explore AI, ethics, communication, and workplace applications</p>
+                <div className="mt-5 flex items-center justify-between">
+                  <span className="inline-flex items-center rounded-full bg-gray-900 px-3 py-1 text-sm font-bold text-white">
+                    R290
+                  </span>
                   <Link to="/course/ai-human-relations">
-                    <Button className="bg-red-600 hover:bg-red-700 text-white">
+                    <Button className="rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white shadow-md">
                       Learn More
                     </Button>
                   </Link>
@@ -196,7 +241,7 @@ const Index = () => {
           
           <div className="text-center mt-12">
             <Link to="/courses">
-              <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 text-lg font-bold">
+              <Button size="lg" className="rounded-full bg-gray-900 hover:bg-black text-white px-8 py-4 text-lg font-bold shadow-lg">
                 View All Courses
               </Button>
             </Link>

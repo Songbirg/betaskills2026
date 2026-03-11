@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Users,
   BookOpen,
@@ -91,10 +92,6 @@ interface DashboardStats {
   cardApproved: number;
 }
 
-
-
-
-
 const EnhancedAdminDashboard: React.FC = () => {
   const { toast } = useToast();
   const [enrollments, setEnrollments] = useState<EnhancedEnrollment[]>([]);
@@ -103,6 +100,8 @@ const EnhancedAdminDashboard: React.FC = () => {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [userModalMode, setUserModalMode] = useState<'view' | 'add' | 'edit'>('view');
   const [activeTab, setActiveTab] = useState('overview');
+  const [statsModalOpen, setStatsModalOpen] = useState(false);
+  const [statsModalFilter, setStatsModalFilter] = useState<'enrollments' | 'users' | 'pending' | 'approved' | 'rejected'>('users');
   const [stats, setStats] = useState<DashboardStats>({
     totalEnrollments: 0,
     pendingEnrollments: 0,
@@ -121,20 +120,70 @@ const EnhancedAdminDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+    let timeoutId: number | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = window.setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+    });
+    try {
+      return await Promise.race([promise, timeoutPromise]);
+    } finally {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    }
+  };
+
+  const statsModalTitle = React.useMemo(() => {
+    switch (statsModalFilter) {
+      case 'pending':
+        return 'Pending Users';
+      case 'approved':
+        return 'Approved Users';
+      case 'rejected':
+        return 'Rejected Users';
+      case 'enrollments':
+        return 'Users With Enrollments';
+      case 'users':
+      default:
+        return 'All Users';
+    }
+  }, [statsModalFilter]);
+
+  const statsModalUsers = React.useMemo(() => {
+    const list = users || [];
+    if (statsModalFilter === 'users') return list;
+    if (statsModalFilter === 'enrollments') return list.filter((u) => (u?.enrollments || []).length > 0);
+    return list.filter((u) => (u?.enrollments || []).some((e) => e?.status === statsModalFilter));
+  }, [users, statsModalFilter]);
+
+  const openStatsModal = (filter: 'enrollments' | 'users' | 'pending' | 'approved' | 'rejected') => {
+    setStatsModalFilter(filter);
+    setStatsModalOpen(true);
+  };
+
   const fetchDashboardData = async () => {
+    let watchdogId: number | undefined;
     try {
       setLoading(true);
       setError(null);
 
+      watchdogId = window.setTimeout(() => {
+        setLoading(false);
+        setError('Admin dashboard request timed out. Please try again.');
+      }, 20000);
+
       // Test basic connection and auth first
       console.log('🔄 Testing Supabase connection...');
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await withTimeout(
+        supabase.auth.getUser(),
+        8000,
+        'Auth'
+      );
 
       if (authError) {
         console.error('❌ Auth error:', authError);
       } else {
         console.log('✅ User authenticated:', user?.email || 'No user');
-        
+
         // Check user's role and permissions
         if (user) {
           const { data: profile, error: profileError } = await supabase
@@ -142,13 +191,13 @@ const EnhancedAdminDashboard: React.FC = () => {
             .select('role, first_name, last_name')
             .eq('id', user.id)
             .single();
-            
+
           if (profileError) {
             console.error('❌ Error fetching user profile:', profileError);
           } else {
             console.log('👤 Current user profile:', profile);
             console.log('🔑 User role:', profile?.role);
-            
+
             if (profile?.role !== 'admin' && profile?.role !== 'instructor') {
               console.warn('⚠️ User does not have admin/instructor role. Current role:', profile?.role);
               toast({
@@ -174,22 +223,30 @@ const EnhancedAdminDashboard: React.FC = () => {
 
       // Test enrollments table access
       console.log('🔍 Testing enrollments table access...');
-      const { error: enrollmentTestError } = await supabase
-        .from('enrollments')
-        .select('count')
-        .limit(1);
+      const { error: enrollmentTestError } = await withTimeout(
+        supabase
+          .from('enrollments')
+          .select('count')
+          .limit(1),
+        8000,
+        'Enrollments table test'
+      );
 
       if (enrollmentTestError) {
         console.error('❌ Enrollments table access test failed:', enrollmentTestError);
         console.error('❌ This might be an RLS policy issue or table permissions problem');
       } else {
         console.log('✅ Enrollments table access successful');
-        
+
         // Get total count
-        const { count, error: countError } = await supabase
-          .from('enrollments')
-          .select('*', { count: 'exact', head: true });
-          
+        const { count, error: countError } = await withTimeout(
+          supabase
+            .from('enrollments')
+            .select('*', { count: 'exact', head: true }),
+          8000,
+          'Enrollments count'
+        );
+
         if (!countError) {
           console.log(`📊 Total enrollments in database: ${count}`);
         }
@@ -197,59 +254,55 @@ const EnhancedAdminDashboard: React.FC = () => {
 
       // Fetch enrollments with multiple fallback strategies
       console.log('🔍 Fetching enrollments from database...');
-      
+
       let enrollmentData: any[] = [];
       let enrollmentError: any = null;
-      
+
       // SPECIAL CHECK: Look specifically for John Doe enrollments
       try {
         console.log('🔍 SPECIAL CHECK: Looking for John Doe enrollments...');
-        const { data: johnDoeEnrollments, error: johnDoeError } = await supabase
-          .from('enrollments')
-          .select('*')
-          .ilike('user_email', '%john.doe%');
-          
+        const { data: johnDoeEnrollments, error: johnDoeError } = await withTimeout(
+          supabase
+            .from('enrollments')
+            .select('*')
+            .ilike('user_email', '%john.doe%'),
+          8000,
+          'John Doe enrollment check'
+        );
+
         if (johnDoeError) {
           console.error('❌ John Doe enrollment check failed:', johnDoeError.message);
         } else {
           console.log('🔍 JOHN DOE ENROLLMENTS FOUND:', johnDoeEnrollments?.length || 0, johnDoeEnrollments);
-          if (johnDoeEnrollments && johnDoeEnrollments.length > 0) {
-            johnDoeEnrollments.forEach((enrollment, index) => {
-              console.log(`📋 John Doe Enrollment ${index + 1}:`, {
-                id: enrollment.id,
-                course_id: enrollment.course_id,
-                course_title: enrollment.course_title,
-                status: enrollment.status,
-                enrolled_at: enrollment.enrolled_at,
-                user_email: enrollment.user_email
-              });
-            });
-          }
         }
       } catch (err) {
         console.error('❌ John Doe enrollment check threw exception:', err);
       }
-      
+
       // CRITICAL FIX: Use service role to bypass RLS restrictions
       console.log('🚨 CRITICAL FIX: Using service role approach to bypass RLS restrictions');
-      
+
       // Strategy 1: Try with service role bypass
       try {
         console.log('🔧 Attempting service role query...');
-        
+
         // Create a service role client for admin operations
-        const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || 
-                              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwYWZjbWl4dGNodnRya2hsdHN0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MzUzMjM4NiwiZXhwIjoyMDY5MTA4Mzg2fQ.VKr7qNlXzJNhWJjSVJzV8Z9X2QYJ5K5J5K5J5K5J5K5';
-        
-        const { createClient } = await import('@supabase/supabase-js');
+        const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwYWZjbWl4dGNodnRya2hsdHN0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MzUzMjM4NiwiZXhwIjoyMDY5MTA4Mzg2fQ.VKr7qNlXzJNhWJjSVJzV8Z9X2QYJ5K5J5K5J5K5J5K5';
+        const { createClient } = await withTimeout(
+          import('@supabase/supabase-js'),
+          8000,
+          'Supabase client import'
+        );
         const serviceClient = createClient(
           'https://jpafcmixtchvtrkhltst.supabase.co',
           serviceRoleKey
         );
-        
-        const { data: serviceData, error: serviceError } = await serviceClient
-          .from('enrollments')
-          .select(`
+
+        const { data: serviceData, error: serviceError } = await withTimeout(
+          serviceClient
+            .from('enrollments')
+            .select(`
             *,
             profiles:user_id (
               id,
@@ -259,8 +312,11 @@ const EnhancedAdminDashboard: React.FC = () => {
               role
             )
           `)
-          .order('enrolled_at', { ascending: false });
-          
+            .order('enrolled_at', { ascending: false }),
+          10000,
+          'Service role enrollment query'
+        );
+
         if (serviceError) {
           console.warn('⚠️ Service role query failed:', serviceError.message);
           enrollmentError = serviceError;
@@ -268,9 +324,9 @@ const EnhancedAdminDashboard: React.FC = () => {
           enrollmentData = serviceData || [];
           enrollmentError = null;
           console.log('✅ SERVICE ROLE query succeeded, got', enrollmentData.length, 'enrollments');
-          
+
           // Log John Doe enrollments specifically
-          const johnDoeEnrollments = enrollmentData.filter(e => 
+          const johnDoeEnrollments = enrollmentData.filter(e =>
             e.user_email && e.user_email.toLowerCase().includes('john.doe')
           );
           console.log('🔍 John Doe enrollments from service role:', johnDoeEnrollments.length, johnDoeEnrollments);
@@ -279,13 +335,14 @@ const EnhancedAdminDashboard: React.FC = () => {
         console.warn('⚠️ Service role query threw exception:', err);
         enrollmentError = err;
       }
-      
+
       // Strategy 2: If service role failed, try regular query with profiles join
       if (enrollmentError || !enrollmentData.length) {
         try {
-          const { data, error } = await supabase
-            .from('enrollments')
-            .select(`
+          const { data, error } = await withTimeout(
+            supabase
+              .from('enrollments')
+              .select(`
               *,
               profiles:user_id (
                 id,
@@ -295,8 +352,11 @@ const EnhancedAdminDashboard: React.FC = () => {
                 role
               )
             `)
-            .order('enrolled_at', { ascending: false });
-            
+              .order('enrolled_at', { ascending: false }),
+            10000,
+            'Enrollments query'
+          );
+
           if (error) {
             console.warn('⚠️ Complex query failed, trying simpler approach:', error.message);
             enrollmentError = error;
@@ -309,15 +369,19 @@ const EnhancedAdminDashboard: React.FC = () => {
           enrollmentError = err;
         }
       }
-      
+
       // Strategy 3: If complex query failed, try simple query
       if (enrollmentError || !enrollmentData.length) {
         try {
-          const { data, error } = await supabase
-            .from('enrollments')
-            .select('*')
-            .order('enrolled_at', { ascending: false });
-            
+          const { data, error } = await withTimeout(
+            supabase
+              .from('enrollments')
+              .select('*')
+              .order('enrolled_at', { ascending: false }),
+            10000,
+            'Enrollments simple query'
+          );
+
           if (error) {
             console.error('❌ Simple query also failed:', error.message);
             enrollmentError = error;
@@ -331,40 +395,43 @@ const EnhancedAdminDashboard: React.FC = () => {
           enrollmentError = err;
         }
       }
-      
+
       // Strategy 3: If both failed, try with service role or different approach
       if (enrollmentError && (!enrollmentData || enrollmentData.length === 0)) {
         console.warn('⚠️ All direct queries failed, checking if table exists and has data');
         try {
-          const { count, error: countError } = await supabase
-            .from('enrollments')
-            .select('*', { count: 'exact', head: true });
-            
+          const { count, error: countError } = await withTimeout(
+            supabase
+              .from('enrollments')
+              .select('*', { count: 'exact', head: true }),
+            8000,
+            'Enrollments count (fallback)'
+          );
+
           if (countError) {
             console.error('❌ Count query failed:', countError.message);
           } else {
             console.log(`📊 Table exists with ${count} total enrollments`);
-            if (count && count > 0) {
-              console.log('⚠️ Data exists but queries are failing - likely RLS issue');
-            }
           }
         } catch (err) {
           console.error('❌ Count query threw exception:', err);
         }
       }
 
-      console.log('📊 Final enrollment query result:', { 
-        count: enrollmentData?.length || 0, 
+      console.log('📊 Final enrollment query result:', {
+        count: enrollmentData?.length || 0,
         error: enrollmentError?.message || 'none',
         hasData: enrollmentData && enrollmentData.length > 0
       });
 
-
-
       // Fetch users with enrollment counts - with better error handling
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('*');
+      const { data: userData, error: userError } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('*'),
+        10000,
+        'Profiles query'
+      );
 
       if (userError) {
         console.error('User fetch error:', userError);
@@ -377,7 +444,7 @@ const EnhancedAdminDashboard: React.FC = () => {
       const processedEnrollments = (enrollmentData || []).map(enrollment => {
         try {
           const paymentType = detectPaymentType(enrollment);
-          
+
           // Get user info from profiles join or fallback to enrollment data
           let userInfo = enrollment.profiles;
           if (!userInfo && enrollment.user_email) {
@@ -391,7 +458,7 @@ const EnhancedAdminDashboard: React.FC = () => {
               role: 'student'
             };
           }
-          
+
           return {
             ...enrollment,
             user_email: enrollment.user_email || 'Unknown',
@@ -531,6 +598,7 @@ const EnhancedAdminDashboard: React.FC = () => {
         variant: 'destructive',
       });
     } finally {
+      if (watchdogId) window.clearTimeout(watchdogId);
       setLoading(false);
     }
   };
@@ -1109,7 +1177,10 @@ const EnhancedAdminDashboard: React.FC = () => {
 
           {/* Comprehensive Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
+            <Card
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => openStatsModal('enrollments')}
+            >
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -1122,7 +1193,10 @@ const EnhancedAdminDashboard: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => openStatsModal('pending')}
+            >
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -1131,6 +1205,38 @@ const EnhancedAdminDashboard: React.FC = () => {
                     <p className="text-xs text-gray-500 mt-1">Awaiting review</p>
                   </div>
                   <Clock className="h-8 w-8 text-yellow-500" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => openStatsModal('approved')}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Approved</p>
+                    <p className="text-3xl font-bold text-green-600">{stats.approvedEnrollments}</p>
+                    <p className="text-xs text-gray-500 mt-1">Approved enrollments</p>
+                  </div>
+                  <CheckCircle className="h-8 w-8 text-green-500" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => openStatsModal('rejected')}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Rejected</p>
+                    <p className="text-3xl font-bold text-red-600">{stats.rejectedEnrollments}</p>
+                    <p className="text-xs text-gray-500 mt-1">Rejected enrollments</p>
+                  </div>
+                  <AlertTriangle className="h-8 w-8 text-red-500" />
                 </div>
               </CardContent>
             </Card>
@@ -1148,7 +1254,10 @@ const EnhancedAdminDashboard: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => openStatsModal('users')}
+            >
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -1213,6 +1322,61 @@ const EnhancedAdminDashboard: React.FC = () => {
               </CardContent>
             </Card>
           </div>
+
+          <Dialog open={statsModalOpen} onOpenChange={setStatsModalOpen}>
+            <DialogContent className="max-w-3xl w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto overflow-x-hidden top-[4vh] translate-y-0">
+              <DialogHeader>
+                <DialogTitle>{statsModalTitle}</DialogTitle>
+                <DialogDescription>
+                  Showing {statsModalUsers.length} user{statsModalUsers.length === 1 ? '' : 's'}
+                </DialogDescription>
+              </DialogHeader>
+
+              {statsModalUsers.length === 0 ? (
+                <div className="py-10 text-center text-sm text-gray-500">No users found for this filter.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-200">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">User</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Email</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Enrollments</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Pending</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Approved</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Rejected</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-slate-100">
+                      {statsModalUsers.map((u) => {
+                        const eList = u?.enrollments || [];
+                        const pending = eList.filter((e) => e?.status === 'pending').length;
+                        const approved = eList.filter((e) => e?.status === 'approved').length;
+                        const rejected = eList.filter((e) => e?.status === 'rejected').length;
+                        const name = `${u?.first_name || ''} ${u?.last_name || ''}`.trim() || u?.email || 'Unknown';
+                        return (
+                          <tr key={u.id} className="hover:bg-slate-50">
+                            <td className="px-4 py-3 text-sm text-slate-800 font-medium">{name}</td>
+                            <td className="px-4 py-3 text-sm text-slate-700 break-words">{u.email || 'N/A'}</td>
+                            <td className="px-4 py-3 text-sm text-slate-700">{eList.length}</td>
+                            <td className="px-4 py-3 text-sm text-slate-700">{pending}</td>
+                            <td className="px-4 py-3 text-sm text-slate-700">{approved}</td>
+                            <td className="px-4 py-3 text-sm text-slate-700">{rejected}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setStatsModalOpen(false)}>
+                  Close
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* Main Dashboard Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
