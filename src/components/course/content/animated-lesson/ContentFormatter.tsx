@@ -120,7 +120,54 @@ const YouTubeVideo = ({ videoId, title }: { videoId: string; title?: string }) =
 
 // Enhanced Paragraph Component with Dynamic Styling
 const DynamicParagraph = ({ children, ...props }: any) => {
-  const text = typeof children === 'string' ? children : React.Children.toArray(children).join('');
+  // Safely convert children to string, handling objects properly
+  const getTextContent = (child: any): string => {
+    if (typeof child === 'string') return child;
+    if (typeof child === 'number') return String(child);
+    if (React.isValidElement(child)) {
+      // React element - return empty string as it will render separately
+      return '';
+    }
+    if (child === null || child === undefined) return '';
+    if (typeof child === 'object') {
+      // Handle object with textContent or other string properties
+      if (child.textContent && typeof child.textContent === 'string') {
+        return child.textContent;
+      }
+      if (child.toString && typeof child.toString === 'function') {
+        const str = child.toString();
+        if (str !== '[object Object]') return str;
+      }
+      // If it's an object but has no useful string representation, return empty
+      return '';
+    }
+    return String(child);
+  };
+
+  // Filter out empty strings and objects from children
+  const validChildren = React.Children.toArray(children).filter(child => {
+    if (typeof child === 'string' || typeof child === 'number') return true;
+    if (React.isValidElement(child)) return true;
+    if (child === null || child === undefined) return false;
+    if (typeof child === 'object') {
+      // Filter out plain objects that would render as [object Object]
+      const str = String(child);
+      return str !== '[object Object]';
+    }
+    return true;
+  });
+
+  const text = validChildren.map(getTextContent).join('');
+  
+  // If we have React elements as children (like YouTubeVideo), render them directly
+  const hasReactElements = validChildren.some(child => React.isValidElement(child));
+  if (hasReactElements || validChildren.length === 0 || text.length === 0) {
+    return (
+      <p className="mb-6 text-gray-700 dark:text-gray-300 leading-relaxed text-lg group hover:text-gray-800 dark:hover:text-gray-200 transition-colors duration-200 animate-fade-in-up relative pl-4 border-l-2 border-transparent hover:border-blue-300 transition-all duration-300 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 rounded-r-lg py-2 -ml-2 mobile-paragraph">
+        {validChildren}
+      </p>
+    );
+  }
   
   // Check if this is a dense paragraph that needs breaking up
   const isDenseParagraph = text.length > 200 && !text.includes('\n');
@@ -261,6 +308,68 @@ const components = {
   },
 };
 
+// Modernize dense textbook content by breaking into digestible chunks
+const modernizeContent = (content: string): string => {
+  // Split long paragraphs into shorter ones for better readability
+  const lines = content.split('\n');
+  const result: string[] = [];
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    // Keep headers and list items as-is
+    if (trimmed.startsWith('#') || 
+        trimmed.startsWith('-') || 
+        trimmed.startsWith('*') ||
+        trimmed.startsWith('**') ||
+        trimmed.startsWith('>')) {
+      result.push(line);
+      continue;
+    }
+    
+    // Skip empty lines but preserve them
+    if (!trimmed) {
+      result.push(line);
+      continue;
+    }
+    
+    // For long paragraphs (dense text), add visual breaks
+    if (trimmed.length > 150 && !trimmed.includes('  ')) {
+      // Split into sentences and add line breaks for visual breathing room
+      const sentences = trimmed.match(/[^.!?]+[.!?]+[\s]*/g) || [trimmed];
+      
+      if (sentences.length > 2) {
+        // Group sentences into smaller chunks (2-3 sentences each)
+        let chunk = '';
+        let sentenceCount = 0;
+        
+        for (const sentence of sentences) {
+          chunk += sentence.trim() + ' ';
+          sentenceCount++;
+          
+          if (sentenceCount >= 2 && chunk.length > 100) {
+            result.push(chunk.trim());
+            result.push(''); // Add breathing room
+            chunk = '';
+            sentenceCount = 0;
+          }
+        }
+        
+        // Add remaining chunk
+        if (chunk.trim()) {
+          result.push(chunk.trim());
+        }
+      } else {
+        result.push(line);
+      }
+    } else {
+      result.push(line);
+    }
+  }
+  
+  return result.join('\n');
+};
+
 const ContentFormatter = ({ content }: ContentFormatterProps) => {
   // Check if content contains HTML and use HTML processor instead
   if (hasHtmlContent(content)) {
@@ -296,7 +405,7 @@ const ContentFormatter = ({ content }: ContentFormatterProps) => {
 
 
   // Preprocess for YouTube custom formats and replace emoji icons with minimal dots
-  let processedContent = replaceEmojiIcons(preprocessYouTubeEmbeds(content));
+  let processedContent = modernizeContent(replaceEmojiIcons(preprocessYouTubeEmbeds(content)));
   
   // Replace table markdown with custom table renderer if needed
   const tables = parseTableContent(processedContent);

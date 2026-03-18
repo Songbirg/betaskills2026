@@ -1,9 +1,12 @@
-import type { Quiz } from '@/types/course';
+import type { QuizLesson } from '@/types/course';
 
-const quiz1: Quiz = {
-  id: 1,
+const quiz1: QuizLesson = {
+  id: 6,
   title: 'Module 1 Quiz: Introduction to Bookkeeping',
-  questions: [
+  type: 'quiz',
+  duration: '10 min',
+  content: {
+    questions: [
     {
       question: 'What best defines bookkeeping?',
       options: [
@@ -114,7 +117,8 @@ const quiz1: Quiz = {
       correct: 2,
       explanation: 'Bookkeeping provides the raw financial data required for analysis, compliance, and planning, making it foundational to financial management.'
     }
-  ]
+    ]
+  }
 };
 
 export default quiz1;

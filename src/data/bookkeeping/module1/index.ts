@@ -1,10 +1,10 @@
 import type { Module } from '@/types/course';
-import { lesson1Definition } from './lesson1-definition';
-import { lesson2Purpose } from './lesson2-purpose';
-import { lesson3BookkeepingVsAccounting } from './lesson3-bookkeeping-vs-accounting';
-import { lesson4BusinessTypes } from './lesson4-business-types';
-import { lesson5BookkeeperRole } from './lesson5-bookkeeper-role';
-import { quiz1 } from './quiz1';
+import lesson1Definition from './lesson1-definition';
+import lesson2Purpose from './lesson2-purpose';
+import lesson3BookkeepingVsAccounting from './lesson3-bookkeeping-vs-accounting';
+import lesson4BusinessTypes from './lesson4-business-types';
+import lesson5BookkeeperRole from './lesson5-bookkeeper-role';
+import quiz1 from './quiz1';
 
 const module1: Module = {
   id: 1,

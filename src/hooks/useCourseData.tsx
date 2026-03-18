@@ -30,6 +30,7 @@ import { nailTechnicianCourse } from '@/data/nailTechnician/index';
 import motorMechanicDieselCourse from '@/data/motorMechanicDiesel/index';
 import aiCartoonMoviesCourse from '@/data/aiCartoonMovies/index';
 import { soundEngineeringCourse } from '@/data/soundEngineering/index';
+import bookkeepingCourse from '@/data/bookkeeping';
 
 import sellingOnlineCourse from '@/data/sellingOnline';
 import onlineTradingCourse from '@/data/onlineTrading';
@@ -255,6 +256,7 @@ export const useCourseData = (courseId?: string) => {
         'nail-technician': nailTechnicianCourse,
         'ai-cartoon-movies': aiCartoonMoviesCourse,
         'sound-engineering': soundEngineeringCourse,
+        'bookkeeping': bookkeepingCourse,
 
         'selling-online': sellingOnlineCourse,
         'online-trading': onlineTradingCourse,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useEnrollments } from '@/hooks/useEnrollments';
 import { useBulletproofDashboard } from '@/hooks/useBulletproofDashboard';
-import { filterRealEnrollments } from '@/utils/clearFakeData';
+import { getEnrollmentStatus, getCourseProgress } from '@/utils/enrollmentPersistence';
 import globalDataRecovery from '@/utils/globalDataRecovery';
 
 // Helper for animated confetti
@@ -23,6 +23,9 @@ const StudentDashboard = ({ profile, enrollments = [], courses = [], userId }: a
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState('');
+  const [progressRefreshKey, setProgressRefreshKey] = useState(0);
+  // Track selected course for detailed stats
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   // Use bulletproof dashboard hook for real user-specific data
   const {
     dashboardData,
@@ -32,19 +35,71 @@ const StudentDashboard = ({ profile, enrollments = [], courses = [], userId }: a
     updatePreferences,
   } = useBulletproofDashboard();
   
-  // Use real enrollments hook to get latest data
-  const { enrollments: enrollmentsFromHook } = useEnrollments();
+  // Use real enrollments hook to get latest data - this has the actual enrollment data
+  const { enrollments: enrollmentsFromHook, isLoading: enrollmentsLoading } = useEnrollments();
   
+  // Direct localStorage fallback - the data is stored there but hook might not read it
+  const [localStorageEnrollments, setLocalStorageEnrollments] = useState<any[]>([]);
+  
+  useEffect(() => {
+    // Read directly from localStorage where the 16 enrollments are stored
+    const keys = ['enrollments', `user-enrollments-${userId}`, 'user-enrollments'];
+    for (const key of keys) {
+      const data = localStorage.getItem(key);
+      if (data) {
+        try {
+          const parsed = JSON.parse(data);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            console.log(`✅ Dashboard found ${parsed.length} enrollments in localStorage key: ${key}`);
+            setLocalStorageEnrollments(parsed);
+            break;
+          }
+        } catch (e) {
+          console.error('Failed to parse enrollments from localStorage:', e);
+        }
+      }
+    }
+  }, [userId]);
+  
+  // PRIORITIZE localStorage data > hook data > props
+  const userEnrollmentsSource = localStorageEnrollments.length > 0 
+    ? localStorageEnrollments 
+    : (enrollmentsFromHook?.length > 0 ? enrollmentsFromHook : (enrollments || []));
+
+  // IMPORTANT: localStorage global keys can contain enrollments for many users.
+  // Scope to the currently logged-in user only.
+  const userEnrollments = userEnrollmentsSource.filter((e: any) => {
+    if (!e) return false;
+    if (!userId && !profile?.email) return false;
+
+    const enrollmentUserId = e.user_id || e.userId;
+    const enrollmentEmail = e.user_email || e.userEmail || e.email;
+
+    const matchesUserId = userId ? enrollmentUserId === userId : false;
+    const matchesEmail = profile?.email ? enrollmentEmail === profile.email : false;
+
+    if (!(matchesUserId || matchesEmail)) return false;
+
+    // Only show truly enrolled/approved courses. If status is missing, default to include.
+    if (typeof e.status === 'string') {
+      const status = e.status.toLowerCase();
+      return status === 'approved' || status === 'enrolled' || status === 'active';
+    }
+
+    return true;
+  });
+
   // Debug logging to see what data we have
   React.useEffect(() => {
-    console.log('📊 Bulletproof Dashboard Data:', {
-      isInitialized,
-      dashboardData: !!dashboardData,
-      recentActivities: recentActivities?.length || 0,
+    console.log('📊 Dashboard Data Debug:', {
+      localStorageEnrollments: localStorageEnrollments?.length || 0,
+      enrollmentsFromHook: enrollmentsFromHook?.length || 0,
+      enrollmentsFromProps: enrollments?.length || 0,
+      userEnrollments: userEnrollments?.length || 0,
+      courses: courses?.length || 0,
       userId,
-      profile: profile?.email
     });
-  }, [isInitialized, dashboardData, recentActivities, userId, profile]);
+  }, [localStorageEnrollments, enrollmentsFromHook, enrollments, userEnrollments, courses, userId]);
 
   // Listen for enrollment status updates to refresh data
   React.useEffect(() => {
@@ -60,10 +115,28 @@ const StudentDashboard = ({ profile, enrollments = [], courses = [], userId }: a
       window.removeEventListener('enrollment-status-updated', handleEnrollmentStatusUpdate as EventListener);
     };
   }, []);
-  
-  // Use ONLY real enrollments from the database - filter out any fake data
-  const userEnrollments = filterRealEnrollments(enrollmentsFromHook || []);
 
+  useEffect(() => {
+    const handleProgressUpdated = () => {
+      setProgressRefreshKey((v) => v + 1);
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (!e.key) return;
+      if (e.key.startsWith('course-progress-') || e.key.startsWith('user-progress-')) {
+        setProgressRefreshKey((v) => v + 1);
+      }
+    };
+
+    window.addEventListener('progress-updated', handleProgressUpdated as EventListener);
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      window.removeEventListener('progress-updated', handleProgressUpdated as EventListener);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, []);
+  
   // Get actual student name with better fallbacks
   const studentName = React.useMemo(() => {
     // Use bulletproof data if available
@@ -89,32 +162,62 @@ const StudentDashboard = ({ profile, enrollments = [], courses = [], userId }: a
     return 'Student';
   }, [dashboardData, profile]);
 
-  // Map ONLY real enrollments to course progress and completion
-  const enrolledCourses = userEnrollments.map((enrollment: any) => {
-    const course = courses.find((c: any) => c.id === enrollment.course_id || c.id === enrollment.id);
-    const progress = Math.round((enrollment.progress || 0)); // Already in percentage
-    const courseModules = course?.modules;
-    const totalLessons = Array.isArray(courseModules)
-      ? courseModules.reduce((acc: number, m: any) => acc + (m?.lessons?.length || 0), 0)
-      : undefined;
+  // Map enrollments to course progress - extract progress from various possible field names
+  const enrolledCourses = React.useMemo(() => {
+    if (userEnrollments.length === 0) return [];
 
-    const completedLessonsCount = dashboardData?.courseProgress?.[course?.id || enrollment.course_id || enrollment.id]?.completedLessons?.length;
+    return userEnrollments
+      .map((enrollment: any) => {
+        const course = courses.find((c: any) => c.id === enrollment.course_id || c.id === enrollment.id);
+        const courseId = course?.id || enrollment.course_id || enrollment.id;
+        const persistedProgress = getCourseProgress(courseId, userId);
+        const rawProgress = enrollment.progress ?? enrollment.course_progress ?? enrollment.completion_percentage ?? 0;
+        const progress = persistedProgress || Math.round(Number(rawProgress) || 0);
+        const courseModules = course?.modules;
+        const totalLessons = Array.isArray(courseModules)
+          ? courseModules.reduce((acc: number, m: any) => acc + (m?.lessons?.length || 0), 0)
+          : 0;
 
-    return {
-      id: course?.id || enrollment.course_id || enrollment.id,
-      title: course?.title || enrollment.course_title || enrollment.title || 'Untitled Course',
-      progress: progress,
-      completed: progress >= 100,
-      level: course?.level,
-      totalLessons,
-      completedLessonsCount,
-      certificateUrl: enrollment.certificate_url || enrollment.certificateUrl || '#',
-      status: enrollment.status,
-      enrolled_at: enrollment.enrolled_at,
-      last_accessed: enrollment.last_accessed,
-      timeSpent: enrollment.timeSpent || 0,
-    };
-  });
+        // Try to get completed lessons from various sources
+        const courseProgressKey = `user-progress-${userId}`;
+        const savedProgress = localStorage.getItem(courseProgressKey);
+        let completedLessonsCount = 0;
+
+        if (savedProgress) {
+          try {
+            const progressData = JSON.parse(savedProgress);
+            completedLessonsCount = progressData[courseId]?.completedLessons?.length || 0;
+          } catch (e) {
+            // ignore
+          }
+        }
+
+        return {
+          id: courseId,
+          title: course?.title || enrollment.course_title || enrollment.title || 'Untitled Course',
+          progress: progress,
+          completed: progress >= 100,
+          level: course?.level || 'Beginner',
+          totalLessons,
+          completedLessonsCount,
+          certificateUrl: enrollment.certificate_url || enrollment.certificateUrl || '#',
+          status: enrollment.status || 'active',
+          enrolled_at: enrollment.enrolled_at,
+          last_accessed: enrollment.last_accessed,
+          timeSpent: enrollment.timeSpent || 0,
+          modules: course?.modules || [], // Store modules for later use
+        };
+      })
+      // Filter out untitled courses (no matching course data)
+      .filter((course: any) => course.title !== 'Untitled Course');
+  }, [userEnrollments, courses, userId, progressRefreshKey]);
+
+  // Get selected course data
+  const selectedCourse = selectedCourseId 
+    ? enrolledCourses.find((c: any) => c.id === selectedCourseId)
+    : enrolledCourses[0]; // Default to first course if none selected
+
+  const selectedCourseProgress = selectedCourse?.progress || 0;
 
   // Calculate overall progress based on real enrollments only
   const overallProgress = enrolledCourses.length > 0 
@@ -403,43 +506,15 @@ const StudentDashboard = ({ profile, enrollments = [], courses = [], userId }: a
 
                 <div className="mt-6 w-full">
                   <div className="flex items-baseline gap-3">
-                    <div className="text-4xl font-bold text-gray-900">{overallProgress}%</div>
-                    <div className="text-sm text-gray-500">Total month activity</div>
+                    <div className="text-4xl font-bold text-gray-900">{selectedCourseProgress}%</div>
+                    <div className="text-sm text-gray-500">
+                      {selectedCourse ? `${selectedCourse.title} - Activity` : 'Total course activity'}
+                    </div>
                   </div>
                   <div className="mt-4 grid grid-cols-3 gap-2">
                     <div className="h-1.5 rounded-full bg-pink-300" />
                     <div className="h-1.5 rounded-full bg-yellow-300" />
                     <div className="h-1.5 rounded-full bg-red-500" />
-                  </div>
-                </div>
-
-                <div className="mt-6 grid w-full grid-cols-3 gap-4">
-                  <div className="rounded-2xl bg-gray-50 ring-1 ring-gray-200 p-4">
-                    <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-2xl bg-pink-100 text-pink-700">
-                      <Clock className="h-5 w-5" />
-                    </div>
-                    <div className="mt-3 text-2xl font-bold text-gray-900">
-                      {computedStats.inProgressCourses}
-                    </div>
-                    <div className="text-xs text-gray-500">In progress</div>
-                  </div>
-                  <div className="rounded-2xl bg-gray-50 ring-1 ring-gray-200 p-4">
-                    <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-2xl bg-yellow-100 text-yellow-700">
-                      <Calendar className="h-5 w-5" />
-                    </div>
-                    <div className="mt-3 text-2xl font-bold text-gray-900">
-                      {pendingEnrollmentsCount}
-                    </div>
-                    <div className="text-xs text-gray-500">Upcoming</div>
-                  </div>
-                  <div className="rounded-2xl bg-gray-50 ring-1 ring-gray-200 p-4">
-                    <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-2xl bg-green-100 text-green-700">
-                      <CheckCircle className="h-5 w-5" />
-                    </div>
-                    <div className="mt-3 text-2xl font-bold text-gray-900">
-                      {computedStats.completedCourses}
-                    </div>
-                    <div className="text-xs text-gray-500">Completed</div>
                   </div>
                 </div>
 
@@ -479,8 +554,16 @@ const StudentDashboard = ({ profile, enrollments = [], courses = [], userId }: a
               </div>
 
               <div className="mt-6 flex gap-4 overflow-x-auto pb-2">
-                {(enrolledCourses.length ? enrolledCourses : [{ id: 'empty', title: 'Browse courses', progress: 0 }]).slice(0, 8).map((course: any) => (
-                  <div key={course.id} className="min-w-[260px] max-w-[260px] rounded-3xl bg-white p-5 shadow-sm">
+                {enrolledCourses.map((course: any) => (
+                  <div 
+                    key={course.id} 
+                    className={`min-w-[260px] max-w-[260px] rounded-3xl p-5 shadow-sm cursor-pointer transition-all ${
+                      selectedCourseId === course.id 
+                        ? 'bg-white ring-4 ring-yellow-400' 
+                        : 'bg-white hover:bg-gray-50'
+                    }`}
+                    onClick={() => setSelectedCourseId(course.id)}
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div className="font-semibold text-gray-900 line-clamp-2">{course.title}</div>
                       <div className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
@@ -508,15 +591,13 @@ const StudentDashboard = ({ profile, enrollments = [], courses = [], userId }: a
                     </div>
 
                     <div className="mt-4 flex items-center justify-between">
-                      {course.id !== 'empty' ? (
-                        <Link to={`/course/${course.id}`} className="inline-flex items-center rounded-full bg-gray-900 px-4 py-2 text-xs font-semibold text-white">
-                          Continue
-                        </Link>
-                      ) : (
-                        <Link to="/courses" className="inline-flex items-center rounded-full bg-gray-900 px-4 py-2 text-xs font-semibold text-white">
-                          Browse
-                        </Link>
-                      )}
+                      <Link 
+                        to={`/course/${course.id}`} 
+                        className="inline-flex items-center rounded-full bg-gray-900 px-4 py-2 text-xs font-semibold text-white"
+                        onClick={(e) => e.stopPropagation()} // Prevent card selection when clicking Continue
+                      >
+                        Continue
+                      </Link>
                       <div className="flex items-center gap-2 text-xs text-gray-500">
                         <Users className="h-4 w-4" />
                         Mentor
@@ -527,60 +608,57 @@ const StudentDashboard = ({ profile, enrollments = [], courses = [], userId }: a
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-12">
-              <div className="lg:col-span-7 rounded-3xl bg-white shadow-sm ring-1 ring-gray-200 p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-base font-semibold text-gray-900">Study process</div>
-                    <div className="text-sm text-gray-500">Weekly overview</div>
-                  </div>
-                  <div className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                    Week
-                  </div>
+            <div className="mt-6 rounded-3xl bg-white shadow-sm ring-1 ring-gray-200 p-6 overflow-hidden">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-base font-semibold text-gray-900">Recent activity</div>
+                  <div className="text-sm text-gray-500">Latest updates & user status</div>
                 </div>
-
-                <div className="mt-6 grid grid-cols-4 gap-3 items-end">
-                  {[{ label: 'Engage', value: studyProcess.engage }, { label: 'Grow', value: studyProcess.grow }, { label: 'Skills', value: studyProcess.skills }, { label: 'Rate', value: studyProcess.rate }].map((item) => (
-                    <div key={item.label} className="flex flex-col items-center gap-2">
-                      <div className="relative w-full max-w-[90px]">
-                        <div className="h-32 rounded-2xl bg-gray-100" />
-                        <div
-                          className="absolute bottom-0 left-0 right-0 rounded-2xl bg-gradient-to-t from-red-700 to-black"
-                          style={{ height: `${Math.min(100, Math.max(0, item.value))}%` }}
-                        />
-                        <div className="absolute top-2 left-1/2 -translate-x-1/2 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-900 ring-1 ring-gray-200">
-                          {item.value}%
-                        </div>
-                      </div>
-                      <div className="text-xs font-medium text-gray-600">{item.label}</div>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${navigator.onLine ? 'bg-green-500 animate-pulse' : 'bg-red-500'} shadow-lg`} />
+                  <span className="text-xs font-medium text-gray-600">
+                    {navigator.onLine ? 'Online' : 'Offline'}
+                  </span>
                 </div>
               </div>
 
-              <div className="lg:col-span-5 rounded-3xl bg-white shadow-sm ring-1 ring-gray-200 p-6 overflow-hidden">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-base font-semibold text-gray-900">Recent activity</div>
-                    <div className="text-sm text-gray-500">Latest updates</div>
-                  </div>
+              <div className="mt-4 space-y-1">
+                <div className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-xs">
+                  <span className="text-gray-500">Last seen</span>
+                  <span className="font-medium text-gray-700">
+                    {dashboardData?.session?.lastLogin 
+                      ? new Date(dashboardData.session.lastLogin).toLocaleString()
+                      : new Date().toLocaleString()}
+                  </span>
                 </div>
+                <div className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-xs">
+                  <span className="text-gray-500">Total sessions</span>
+                  <span className="font-medium text-gray-700">
+                    {dashboardData?.session?.totalSessions || 1}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-xs">
+                  <span className="text-gray-500">User ID</span>
+                  <span className="font-medium text-gray-700 truncate max-w-[120px]">
+                    {userId?.substring(0, 8)}...
+                  </span>
+                </div>
+              </div>
 
-                <div className="mt-6 space-y-2">
-                  {activities.slice(0, 6).length ? (
-                    activities.slice(0, 6).map((a: any, idx: number) => (
-                      <div key={idx} className="flex items-center justify-between rounded-xl bg-white ring-1 ring-gray-100 px-3 py-2">
-                        <div className="min-w-0">
-                          <div className="text-xs font-semibold text-gray-800 line-clamp-1">{a.title || a.type || 'Activity'}</div>
-                          <div className="text-[10px] text-gray-500 line-clamp-1">{a.description || ''}</div>
-                        </div>
-                        <div className="text-[10px] text-gray-500">{a.timestamp ? new Date(a.timestamp).toLocaleDateString() : ''}</div>
+              <div className="mt-4 space-y-2">
+                {activities.slice(0, 6).length ? (
+                  activities.slice(0, 6).map((a: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between rounded-xl bg-white ring-1 ring-gray-100 px-3 py-2">
+                      <div className="min-w-0">
+                        <div className="text-xs font-semibold text-gray-800 line-clamp-1">{a.title || a.type || 'Activity'}</div>
+                        <div className="text-[10px] text-gray-500 line-clamp-1">{a.description || ''}</div>
                       </div>
-                    ))
-                  ) : (
-                    <div className="text-xs text-gray-500">No recent activity yet.</div>
-                  )}
-                </div>
+                      <div className="text-[10px] text-gray-500">{a.timestamp ? new Date(a.timestamp).toLocaleDateString() : ''}</div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-xs text-gray-500">No recent activity yet.</div>
+                )}
               </div>
             </div>
           </motion.section>

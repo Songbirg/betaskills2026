@@ -1,9 +1,12 @@
-import type { Quiz } from '@/types/course';
+import type { QuizLesson } from '@/types/course';
 
-const quiz2: Quiz = {
-  id: 2,
+const quiz2: QuizLesson = {
+  id: 6,
   title: 'Module 2 Quiz: Basic Accounting Concepts and Principles',
-  questions: [
+  type: 'quiz',
+  duration: '10 min',
+  content: {
+    questions: [
     {
       question: 'What is the main principle of business entity concept?',
       options: [
@@ -114,7 +117,8 @@ const quiz2: Quiz = {
       correct: 1,
       explanation: 'The business entity concept ensures clear, objective financial records essential for profitability assessment and compliance in small trades.'
     }
-  ]
+    ]
+  }
 };
 
 export default quiz2;

@@ -15,6 +15,7 @@ import { Search, X } from 'lucide-react';
 
 const PINNED_COURSE_TITLES = [
   'Entrepreneurship',
+  'Bookkeeping Fundamentals',
   'Social Media Marketing 101',
   'AI Assisted Cartoon Movie Making',
   'Roofing',

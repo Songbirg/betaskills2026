@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -11,6 +11,7 @@ import {
   Eye,
   X
 } from 'lucide-react';
+import { useProgressTracking } from '@/hooks/useProgressTracking';
 
 interface Enrollment {
   id: string;
@@ -52,6 +53,32 @@ const WorkingEnrollmentModal = ({
   onReject,
   onViewProof
 }: WorkingEnrollmentModalProps) => {
+  const {
+    isInitialized: progressInitialized,
+    getEnrollmentProgress,
+    getProgressPercentage,
+    getDetailedProgress,
+    isProgressLoading,
+    getProgressError
+  } = useProgressTracking();
+
+  useEffect(() => {
+    if (!isOpen || !enrollment) return;
+    if (!progressInitialized) return;
+
+    void getEnrollmentProgress(enrollment.id, enrollment.user_id, enrollment.course_id);
+  }, [isOpen, enrollment, progressInitialized, getEnrollmentProgress]);
+
+  const progressPercentage = enrollment ? getProgressPercentage(enrollment.id) : 0;
+  const progressData = enrollment ? getDetailedProgress(enrollment.id) : null;
+  const progressLoading = enrollment ? isProgressLoading(enrollment.id) : false;
+  const progressError = enrollment ? getProgressError(enrollment.id) : null;
+
+  const completedLessons = progressData?.completedLessons?.length ?? null;
+  const completedModules = progressData?.completedModules?.length ?? null;
+  const timeSpentMinutes = typeof progressData?.timeSpent === 'number' ? progressData.timeSpent : null;
+  const lastAccessed = progressData?.lastAccessed ? new Date(progressData.lastAccessed).toLocaleString() : null;
+
   if (!isOpen || !enrollment) return null;
 
   return (
@@ -113,13 +140,38 @@ const WorkingEnrollmentModal = ({
               {enrollment.approved_at && (
                 <div><span className="font-medium">Approved:</span> {new Date(enrollment.approved_at).toLocaleString()}</div>
               )}
-              <div><span className="font-medium">Progress:</span> {enrollment.progress}%</div>
+              <div><span className="font-medium">Progress:</span> {Math.max(0, Math.min(100, Math.round(progressPercentage || enrollment.progress || 0)))}%</div>
               <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                 <div 
                   className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full"
-                  style={{ width: `${Math.min(enrollment.progress, 100)}%` }}
+                  style={{ width: `${Math.min(Math.max(0, Math.round(progressPercentage || enrollment.progress || 0)), 100)}%` }}
                 />
               </div>
+
+              {progressInitialized ? (
+                <div className="pt-2 text-sm text-gray-700">
+                  {progressLoading ? (
+                    <div className="text-gray-500">Loading progress details...</div>
+                  ) : progressError ? (
+                    <div className="text-red-600">Failed to load progress details</div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {completedLessons !== null ? (
+                        <div><span className="font-medium">Completed Lessons:</span> {completedLessons}</div>
+                      ) : null}
+                      {completedModules !== null ? (
+                        <div><span className="font-medium">Completed Modules:</span> {completedModules}</div>
+                      ) : null}
+                      {timeSpentMinutes !== null ? (
+                        <div><span className="font-medium">Time Spent:</span> {timeSpentMinutes} min</div>
+                      ) : null}
+                      {lastAccessed ? (
+                        <div><span className="font-medium">Last Accessed:</span> {lastAccessed}</div>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              ) : null}
             </div>
           </div>
 

@@ -1,10 +1,10 @@
 import type { Module } from '@/types/course';
-import { lesson1Invoices } from './lesson1-invoices';
-import { lesson2Receipts } from './lesson2-receipts';
-import { lesson3CreditDebitNotes } from './lesson3-credit-debit-notes';
-import { lesson4ChequesBankStatements } from './lesson4-cheques-bank-statements';
-import { lesson5PettyCashVouchers } from './lesson5-petty-cash-vouchers';
-import { quiz3 } from './quiz3';
+import lesson1Invoices from './lesson1-invoices';
+import lesson2Receipts from './lesson2-receipts';
+import lesson3CreditDebitNotes from './lesson3-credit-debit-notes';
+import lesson4ChequesBankStatements from './lesson4-cheques-bank-statements';
+import lesson5PettyCashVouchers from './lesson5-petty-cash-vouchers';
+import quiz3 from './quiz3';
 
 const module3: Module = {
   id: 3,

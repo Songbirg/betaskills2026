@@ -505,7 +505,7 @@ const CoursesGrid: React.FC<CoursesGridProps> = ({
 
             {/* Content overlay */}
             <div className="absolute inset-0 p-4 flex flex-col justify-between z-10">
-              {/* Status Indicator Badges */}
+              {/* Status Indicator Badges - Top Right */}
               <div className="absolute top-2 right-2 z-20 flex flex-col gap-1">
                 {/* Priority Indicator Badge */}
                 {priorityIndicator && (
@@ -522,25 +522,22 @@ const CoursesGrid: React.FC<CoursesGridProps> = ({
                     <span>{enrollmentIndicator.badge.text}</span>
                   </div>
                 )}
-                
-                {/* Confidence Indicator for enrolled courses */}
-                {status === 'enrolled' && confidence > 0 && confidence < 0.8 && (
-                  <div className="flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-orange-500 text-white shadow-lg">
-                    <AlertCircle className="w-3 h-3" />
-                    <span>Low Confidence</span>
-                  </div>
-                )}
               </div>
 
-              {/* Header section */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-bold text-white line-clamp-2 rounded-lg px-2 py-1 bg-gradient-to-r from-red-600 to-red-800 inline-block w-fit shadow-md">
+              {/* Course Info Section */}
+              <div className="mt-auto">
+                {/* Course Title */}
+                <h3 className="text-white font-bold mb-1 truncate" style={{ fontSize: '16px' }}>
                   {course.title}
                 </h3>
-                <p className="text-xs text-gray-200 line-clamp-2">{course.description}</p>
+                
+                {/* Course Description */}
+                <p className="text-gray-300 mb-3 line-clamp-2" style={{ fontSize: '12px' }}>
+                  {course.description}
+                </p>
 
                 {/* Course Stats Badges */}
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap mb-3">
                   <div className={`px-2 py-1 rounded-full text-xs font-semibold shadow-lg ${
                     (course as any)?.isComingSoon
                       ? 'bg-gray-500 text-white'
@@ -581,37 +578,27 @@ const CoursesGrid: React.FC<CoursesGridProps> = ({
                   courseId={course.id}
                   enrolled={isEnrolled}
                 />
-              </div>
 
-              {/* Buttons section */}
-              <div className="flex flex-col gap-2">
-                <button 
-                  onClick={() => navigate(`/course/${course.id}/overview`)}
-                  className="w-full py-2 rounded-full bg-gradient-to-r from-red-600 to-red-800 text-white font-bold text-xs shadow-lg hover:scale-105 hover:from-red-700 hover:to-red-900 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-400/60"
-                >
-                  View Course
-                </button>
-                
-                {/* Refresh enrollment status button for low confidence */}
-                {status === 'enrolled' && confidence > 0 && confidence < 0.6 && (
-                  <button
-                    onClick={() => updateEnrollmentStatusCache(course.id)}
-                    disabled={isLoading}
-                    className="w-full py-1 rounded-full bg-orange-500 text-white font-bold text-xs shadow-lg hover:scale-105 hover:bg-orange-600 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-orange-400/60 disabled:opacity-50 disabled:cursor-not-allowed"
+                {/* Buttons section */}
+                <div className="flex flex-col gap-2 mt-3">
+                  <button 
+                    onClick={() => navigate(`/course/${course.id}/overview`)}
+                    className="w-full py-2 rounded-full bg-gradient-to-r from-red-600 to-red-800 text-white font-bold text-xs shadow-lg hover:scale-105 hover:from-red-700 hover:to-red-900 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-400/60"
                   >
-                    {isLoading ? 'Refreshing...' : 'Refresh Status'}
+                    View Course
                   </button>
-                )}
-                
-                <CourseGridEnrollmentButton
-                  status={status as any}
-                  onEnrollClick={() => handleEnrollClick(course.id)}
-                  onContinueClick={() => handleContinueClick(course.id)}
-                  courseTitle={course.title}
-                  courseId={course.id}
-                  userId={user?.id || user?.email || ''}
-                  isComingSoon={Boolean((course as any)?.isComingSoon) && status === 'unenrolled'}
-                />
+                  
+                  {/* Continue/Enroll button */}
+                  <CourseGridEnrollmentButton
+                    status={status as any}
+                    onEnrollClick={() => handleEnrollClick(course.id)}
+                    onContinueClick={() => handleContinueClick(course.id)}
+                    courseTitle={course.title}
+                    courseId={course.id}
+                    userId={user?.id || user?.email || ''}
+                    isComingSoon={Boolean((course as any)?.isComingSoon) && status === 'unenrolled'}
+                  />
+                </div>
               </div>
             </div>
           </div>

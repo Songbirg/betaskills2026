@@ -53,19 +53,6 @@ export const comingSoonCourses: Partial<SimplifiedCourse>[] = [
     isComingSoon: true,
     overview: 'Complete forex trading course covering currency market fundamentals, technical and fundamental analysis, trading psychology, risk management, and proven trading strategies for the foreign exchange market.',
   },
-  {
-    id: 'bookkeeping',
-    title: 'Bookkeeping',
-    description: 'Essential bookkeeping skills including financial record keeping, accounting principles, tax preparation, and business financial management.',
-    category: 'Business',
-    level: 'Beginner',
-    duration: '8-10 weeks',
-    price: 290,
-
-    thumbnail: '/images/courses/bookkeeping.jpg',
-    isComingSoon: true,
-    overview: 'Learn professional bookkeeping practices including double-entry accounting, financial statements preparation, payroll processing, tax compliance, and using modern accounting software.',
-  },
 
   // ICT
   {
@@ -322,19 +309,6 @@ export const comingSoonCourses: Partial<SimplifiedCourse>[] = [
     overview: 'Master professional massage therapy including Swedish massage, deep tissue, sports massage, anatomy and physiology, therapeutic techniques, and establishing a massage practice.',
   },
   {
-    id: 'beauty-therapy-essentials',
-    title: 'Beauty Therapy Essentials',
-    description: 'Essential beauty therapy training covering skincare, facial treatments, product knowledge, client consultation, and beauty salon operations.',
-    category: 'Health and Beauty',
-    level: 'Beginner',
-    duration: '8-10 weeks',
-    price: 290,
-
-    thumbnail: '/images/courses/beauty-therapy.jpg',
-    isComingSoon: true,
-    overview: 'Learn beauty therapy fundamentals including skincare analysis, facial treatments, product application, client consultation, hygiene standards, and beauty salon management.',
-  },
-  {
     id: 'fashion-design',
     title: 'Fashion Design',
     description: 'Fashion design training covering design principles, pattern making, garment construction, fashion illustration, and industry trends.',
@@ -465,21 +439,6 @@ export const comingSoonCourses: Partial<SimplifiedCourse>[] = [
     thumbnail: '/images/courses/prophetic-ministry.jpg',
     isComingSoon: true,
     overview: 'Master prophetic ministry including spiritual gift development, prophetic revelation, ministry protocols, spiritual discernment, and prophetic leadership in the church.',
-  },
-
-  // Hospitality and Culinary
-  {
-    id: 'master-chef',
-    title: 'Master Chef',
-    description: 'Professional culinary training covering advanced cooking techniques, menu development, kitchen management, food presentation, and culinary excellence.',
-    category: 'Hospitality and Culinary',
-    level: 'Advanced',
-    duration: '14-16 weeks',
-    price: 290,
-
-    thumbnail: '/images/courses/master-chef.jpg',
-    isComingSoon: true,
-    overview: 'Master professional cooking including advanced culinary techniques, menu planning, kitchen management, food presentation, cost control, and restaurant operations.',
   },
 
   // Motor Vehicles

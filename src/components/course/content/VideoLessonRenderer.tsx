@@ -66,6 +66,8 @@ const VideoLessonRenderer = ({ lesson, isCompleted, onMarkComplete, onNext }: Vi
     ? lesson.content
     : (lesson.content as any)?.textContent;
 
+  const resolvedVideoUrl = (lesson as any)?.content?.videoUrl || (lesson as any)?.videoUrl || '';
+
   const hasHtmlContent = !!textContent && (
     textContent.includes('<div') ||
     textContent.includes('<h2>') ||
@@ -86,12 +88,12 @@ const VideoLessonRenderer = ({ lesson, isCompleted, onMarkComplete, onNext }: Vi
     if (lesson.content?.textContent?.length === 0) {
       console.warn('VideoLessonRenderer: Empty content for lesson', lesson.id);
     }
-    if (lesson.content?.videoUrl) {
+    if (resolvedVideoUrl) {
       console.log(`VideoLessonRenderer: Processing video for lesson "${lesson.title}"`);
-      console.log(`VideoLessonRenderer: Video URL: ${lesson.content.videoUrl}`);
+      console.log(`VideoLessonRenderer: Video URL: ${resolvedVideoUrl}`);
       console.log(`VideoLessonRenderer: Enhanced content starts with: ${enhancedContent.substring(0, 100)}...`);
     }
-  }, [lesson.id, lesson.content?.videoUrl, lesson.title, enhancedContent]);
+  }, [lesson.id, (lesson as any)?.content?.videoUrl, (lesson as any)?.videoUrl, lesson.title, enhancedContent, resolvedVideoUrl]);
 
   const handleContentComplete = () => {
     setContentCompleted(true);
@@ -107,16 +109,16 @@ const VideoLessonRenderer = ({ lesson, isCompleted, onMarkComplete, onNext }: Vi
       <LessonHeader lesson={lesson} isCompleted={isCompleted} />
 
       {/* Video Player - Add this back */}
-      {lesson.content?.videoUrl && (
+      {resolvedVideoUrl && (
         <div className="mb-6">
-          <div className="youtube-container">
+          <div className="youtube-container rounded-xl overflow-hidden shadow-2xl">
             <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
               <iframe
-                className="absolute top-0 left-0 w-full h-full rounded-lg"
-                src={`https://www.youtube.com/embed/${extractVideoId(lesson.content.videoUrl)}`}
+                className="absolute top-0 left-0 w-full h-full"
+                src={`https://www.youtube.com/embed/${extractVideoId(resolvedVideoUrl)}?rel=0&modestbranding=1&playsinline=1`}
                 title={lesson.title}
                 frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
               />
             </div>

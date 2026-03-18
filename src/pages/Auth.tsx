@@ -117,7 +117,7 @@ const Auth = () => {
         await setDashboardPreference(userProfile.role);
       }
 
-      navigate('/courses', { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch (error) {
       console.error('❌ Error during authentication success handling:', error);
       handleAuthenticationError(error as Error);

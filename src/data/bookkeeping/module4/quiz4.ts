@@ -1,9 +1,12 @@
-import type { Quiz } from '@/types/course';
+import type { QuizLesson } from '@/types/course';
 
-const quiz4: Quiz = {
-  id: 4,
+const quiz4: QuizLesson = {
+  id: 5,
   title: 'Module 4 Quiz: Double-Entry Bookkeeping System',
-  questions: [
+  type: 'quiz',
+  duration: '10 min',
+  content: {
+    questions: [
     {
       question: 'Which of the following correctly expresses the basic accounting equation?',
       options: [
@@ -114,7 +117,8 @@ const quiz4: Quiz = {
       correct: 0,
       explanation: 'Purchasing equipment on credit increases assets (equipment) and increases liabilities (accounts payable).'
     }
-  ]
+    ]
+  }
 };
 
 export default quiz4;

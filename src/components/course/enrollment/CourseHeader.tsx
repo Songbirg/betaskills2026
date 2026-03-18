@@ -82,10 +82,6 @@ const CourseHeader = ({ course, totalDuration, totalLessons }: CourseHeaderProps
             <BookOpen className="h-4 w-4 text-white/90" />
             <span>Self-paced learning</span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 shadow-lg text-white text-sm font-semibold backdrop-blur-md border border-white/10 transition-all duration-500 hover:scale-105 hover:shadow-xl animate-gradient-x">
-            <Users className="h-4 w-4 text-white/90" />
-            <span>Expert instructors</span>
-          </div>
           <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-600 shadow-lg text-white text-sm font-semibold backdrop-blur-md border border-white/10 transition-all duration-500 hover:scale-105 hover:shadow-xl animate-gradient-x">
             <Star className="h-4 w-4 text-white/90" />
             <span>Practical skills</span>
@@ -104,10 +100,6 @@ const CourseHeader = ({ course, totalDuration, totalLessons }: CourseHeaderProps
           <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-teal-600 via-cyan-600 to-blue-600 shadow-lg text-white text-sm font-semibold backdrop-blur-md border border-white/10 transition-all duration-500 hover:scale-105 hover:shadow-xl animate-gradient-x">
             <Users className="h-4 w-4 text-white/90" />
             <span>Career advancement</span>
-          </div>
-          <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 shadow-lg text-white text-sm font-semibold backdrop-blur-md border border-white/10 transition-all duration-500 hover:scale-105 hover:shadow-xl animate-gradient-x">
-            <Star className="h-4 w-4 text-white/90" />
-            <span>Industry recognized</span>
           </div>
         </div>
       )

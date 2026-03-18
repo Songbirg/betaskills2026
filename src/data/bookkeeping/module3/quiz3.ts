@@ -1,9 +1,12 @@
-import type { Quiz } from '@/types/course';
+import type { QuizLesson } from '@/types/course';
 
-const quiz3: Quiz = {
-  id: 3,
+const quiz3: QuizLesson = {
+  id: 6,
   title: 'Module 3 Quiz: Source Documents',
-  questions: [
+  type: 'quiz',
+  duration: '10 min',
+  content: {
+    questions: [
     {
       question: 'What is the primary purpose of a sales invoice?',
       options: [
@@ -114,7 +117,8 @@ const quiz3: Quiz = {
       correct: 1,
       explanation: 'Sequential numbering ensures compliance with SARS, supports audits, and prevents gaps or duplication in financial records.'
     }
-  ]
+    ]
+  }
 };
 
 export default quiz3;

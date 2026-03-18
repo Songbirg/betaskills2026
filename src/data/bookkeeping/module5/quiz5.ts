@@ -1,9 +1,12 @@
-import type { Quiz } from '@/types/course';
+import type { QuizLesson } from '@/types/course';
 
-const quiz5: Quiz = {
-  id: 5,
+const quiz5: QuizLesson = {
+  id: 6,
   title: 'Module 5 Quiz: Journals (Books of First Entry)',
-  questions: [
+  type: 'quiz',
+  duration: '10 min',
+  content: {
+    questions: [
     {
       question: 'Which of the following correctly expresses the basic accounting equation?',
       options: [
@@ -114,7 +117,8 @@ const quiz5: Quiz = {
       correct: 0,
       explanation: 'Purchasing equipment on credit increases assets (equipment) and increases liabilities (accounts payable).'
     }
-  ]
+    ]
+  }
 };
 
 export default quiz5;
